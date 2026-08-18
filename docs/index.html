@@ -86,9 +86,9 @@ textarea:focus-visible{box-shadow:inset 2px 0 0 var(--focus)}
 .ln.frame,.ln.flag{border-left-color:var(--s-frame); color:var(--ink-2)}
 .ln.amb{border-left-color:var(--s-amb); background:var(--s-amb-bg); cursor:pointer}
 .ln.miss{border-left-color:var(--s-miss); background:var(--s-miss-bg); color:var(--s-miss)}
-.ln.base{border-left-color:var(--s-base)}
+.ln.base,.ln.part{border-left-color:var(--s-base)}
 .ln.adv{border-left-color:var(--s-frame); color:var(--muted)}
-.ln.base .tag{color:var(--s-base); border:1px solid var(--s-base)}
+.ln.base .tag,.ln.part .tag{color:var(--s-base); border:1px solid var(--s-base)}
 .ln.sep{padding:0; margin:9px 0 9px 18px; border-left:0}
 .ln.sep .txt{padding:0; width:100%; border-top:1px solid var(--line); font-size:0; line-height:0; height:0}
 .ln .tag{
@@ -183,7 +183,7 @@ footer .sw{width:9px; height:2px; border-radius:1px}
   <footer>
     <span class="key"><span class="sw" style="background:var(--s-ok)"></span>옵션 매칭</span>
     <span class="key"><span class="sw" style="background:var(--s-frame)"></span>구조 · 속성 · 고급 정보</span>
-    <span class="key"><span class="sw" style="background:var(--s-base)"></span>베이스타입만 복원</span>
+    <span class="key"><span class="sw" style="background:var(--s-base)"></span>베이스타입만 복원 · 앞뒤절 이어붙임</span>
     <span class="key"><span class="sw" style="background:var(--s-amb)"></span>후보 여럿 — 눌러서 교체</span>
     <span class="key"><span class="sw" style="background:var(--s-miss)"></span>사전에 없음 — 원문 유지</span>
   </footer>
@@ -259,16 +259,16 @@ const FRAME_VAL = {"일반":"Normal","마법":"Magic","희귀":"Rare","고유":"
   "젬":"Gem","화폐":"Currency","점술 카드":"Divination Card"};
 const FRAME_FLAG = {
   "타락됨":"Corrupted","타락":"Corrupted","감정되지 않음":"Unidentified","미감정":"Unidentified",
-  "거울 복제됨":"Mirrored","복제됨":"Mirrored","반사된":"Mirrored","분열됨":"Split","분할됨":"Split",
+  "거울 복제됨":"Mirrored","복제됨":"Mirrored","반사된":"Mirrored","분열됨":"Fractured","분열된 아이템":"Fractured Item","분할됨":"Split","분할된":"Split",
   "쉐이퍼 아이템":"Shaper Item","엘더 아이템":"Elder Item","정복자 아이템":"Warlord Item",
   "구원자 아이템":"Redeemer Item","성전사 아이템":"Crusader Item","사냥꾼 아이템":"Hunter Item",
-  "합성 아이템":"Synthesised Item","균열 아이템":"Fractured Item"
+  "합성 아이템":"Synthesised Item"
 };
 /* 한글 클라이언트도 이 표기는 영문 그대로 찍는다 -> 있는 그대로 통과 */
 const SUFFIX_EN = new Set(["implicit","crafted","enchant","fractured","scourge",
   "synthesised","veiled","augmented","rune","desecrated","corrupted"]);
 const SUFFIX = {"내재":"implicit","제작됨":"crafted","제작":"crafted","인챈트":"enchant",
-  "각인":"enchant","균열":"fractured","합성":"synthesised","스컬지":"scourge"};
+  "각인":"enchant","분열":"fractured","합성":"synthesised","스컬지":"scourge"};
 const BASE_PREFIX = [["상급 ","Superior "],["정교한 ","Superior "],
                      ["결합된 ","Synthesised "],["합성 ","Synthesised "]];
 const SUFFIX_RE = /^(.*?)\s*\((.+?)\)\s*$/;
@@ -276,7 +276,7 @@ const SUFFIX_RE = /^(.*?)\s*\((.+?)\)\s*$/;
 /* ---------- 게임 '고급 아이템 정보 표시' 문구 (역시 CSV에 없다) ---------- */
 /* 촉매 장신구: "퀄리티 (저항 속성 부여): +20% (augmented)"
    게임은 '속성 부여', 한글 POB 는 '보정/속성 향상' 으로 쓴다. 둘 다 받는다. */
-const QUAL_TAIL_RE = /\s*(?:속성 부여|속성 향상|보정)$/;
+const QUAL_TAIL_RE = /\s*(?:속성 부여|속성 향상|보정|속성)$/;
 const QUAL_HEAD = {
   "공격":"Attack","능력치":"Attribute","시전":"Caster","주문":"Caster","카오스":"Chaos",
   "냉기":"Cold","치명타":"Critical","방어":"Defence","원소 피해":"Elemental Damage",
@@ -286,13 +286,15 @@ const QUAL_HEAD = {
 };
 /* { 대가의 제작 접두어 속성 부여 "개량된" (등급: 2) — 피해, 원소 } */
 const ADV_RE = /^\{\s*([\s\S]*?)\s*\}$/;
-const ADV_HEAD_RE = /^(.*?속성\s*부여)(?:\s*"([^"]*)")?(?:\s*\(([^)]*)\))?([\s\S]*)$/;
+const ADV_HEAD_RE = /^(.*?속성(?:\s*부여)?)(?=\s|$)(?:\s*"([^"]*)")?(?:\s*\(([^)]*)\))?([\s\S]*)$/;
 const ADV_KIND = {
   "고정":"Implicit","내재":"Implicit","비고정":"Explicit","접두어":"Prefix","접미어":"Suffix",
   "대가의 제작":"Master Crafted","제작됨":"Crafted","제작":"Crafted","인챈트":"Enchant",
   "각인":"Enchant","각인된":"Enchant","균열된":"Fractured","균열":"Fractured",
   "합성된":"Synthesised","합성":"Synthesised","스컬지":"Scourge","베일에 싸인":"Veiled",
-  "베일":"Veiled","타락된":"Corrupted","타락":"Corrupted","신성모독":"Desecrated","룬":"Rune"
+  "베일":"Veiled","타락된":"Corrupted","타락":"Corrupted","신성모독":"Desecrated","룬":"Rune","분열된":"Fractured","분할된":"Split",
+  // 엘드리치 고정 속성. "세계 포식자 고정 속성" = Eater of Worlds Implicit Modifier
+  "세계 포식자":"Eater of Worlds","작열의 총주교":"Searing Exarch"
 };
 const ADV_TAG = {
   "피해":"Damage","원소":"Elemental","공격":"Attack","주문":"Caster","시전":"Caster",
@@ -302,10 +304,10 @@ const ADV_TAG = {
   "능력치":"Attribute","소환수":"Minion","광역":"Area","발사체":"Projectile",
   "상태 이상":"Ailment","막기":"Block","회복":"Recovery","명중":"Accuracy","흡수":"Leech",
   "오라":"Aura","저주":"Curse","젬":"Gem","홈":"Socket","지속 시간":"Duration",
-  "요구 사항":"Attribute","인챈트":"Enchantment"
+  "요구 사항":"Attribute","인챈트":"Enchantment","출현":"Drop"
 };
 const ADV_TIER_RE = /^\s*등급\s*:\s*(.+?)\s*$/;
-const ADV_NOTE = {"변경이 불가능한 값":"Unscalable Value","합성됨":"Synthesised","분열됨":"Split"};
+const ADV_NOTE = {"변경이 불가능한 값":"Unscalable Value","합성됨":"Synthesised","분열됨":"Fractured"};
 const ADV_PCT_RE = /^(\S+%)\s*(증가|감소)$/;
 const DASH_RE = /\s+[—–]\s+/;     // 고급 정보 구분자
 const DESC_RE = /^\(.*\)$/;       // 통째로 괄호인 설명 줄
@@ -328,6 +330,30 @@ function mod(ko){
   }
   if (first === null) return null;
   return {en:first, alts: alts.length > 1 ? alts : null};
+}
+
+/* 통째로는 사전에 없지만 '앞절, 뒷절' 이 각각 있는 줄을 이어붙인다.
+   한글 POB CSV 에 실제로 구멍이 있다 — 세계 포식자 고정 속성의
+   '고유 적이 접근해 있는 동안, 주문 피해 {0}% 증가' 가 그런 경우다. */
+let CLAUSE = null;
+function buildClauses(){
+  CLAUSE = Object.create(null);
+  const add = (ko, en) => {
+    const ik = ko.indexOf(", "), ie = en.indexOf(", ");
+    if (ik > 0 && ie > 0 && CLAUSE[ko.slice(0, ik)] === undefined)
+      CLAUSE[ko.slice(0, ik)] = en.slice(0, ie);
+  };
+  for (const v of Object.values(T)) for (const [ko, en] of v) add(ko, en);
+  for (const ko in P) add(ko, P[ko]);
+}
+function clauseJoin(ko){
+  const i = ko.indexOf(", ");
+  if (i <= 0) return null;
+  if (!CLAUSE) buildClauses();
+  const ep = CLAUSE[ko.slice(0, i)];
+  if (ep === undefined) return null;
+  const r = mod(ko.slice(i + 2));
+  return r ? ep + ", " + r.en : null;
 }
 
 /* 마법 아이템 이름 '접두 베이스 - 접미' 에서 베이스타입만 복원 */
@@ -373,7 +399,8 @@ function advanced(inner){
   if (name) parts.push(`"${term(name, {})}"`);
   if (paren){
     const t = ADV_TIER_RE.exec(paren);
-    parts.push(`(${t ? "Tier: " + t[1] : paren})`);
+    // (등급: 2) 는 Tier, (우수한) 같은 엘드리치 등급 이름은 사전에 있다
+    parts.push(`(${t ? "Tier: " + t[1] : term(paren, {})})`);
   }
   for (const chunk of (rest || "").split(DASH_RE)){
     const c = chunk.trim();
@@ -439,6 +466,11 @@ function translateLine(s, raw){
       }
     }
   }
+  const wrapSfx = e => sfx ? `${e} (${sfx})` : e;
+  if (!r){
+    const cj = clauseJoin(core);
+    if (cj) return {en: wrapSfx(cj), kind:"part"};
+  }
   if (!r){
     const b = compose(core);
     if (b) return {en:b, kind:"base"};
@@ -462,7 +494,7 @@ const $out = document.getElementById("out");
 const $tally = document.getElementById("tally");
 const override = new Map();          // 줄번호 -> 사용자가 고른 대체 번역
 
-const OK_KINDS = new Set(["ok","frame","flag","base","adv"]);
+const OK_KINDS = new Set(["ok","frame","flag","base","adv","part"]);
 
 function render(){
   const src = $in.value;
@@ -501,6 +533,11 @@ function render(){
     if (r.kind === "base"){
       const t = document.createElement("span"); t.className = "tag"; t.textContent = "베이스만";
       t.title = "마법 아이템 이름에서 베이스타입만 복원했습니다. 접사는 아래 옵션 줄에 그대로 있습니다.";
+      row.append(t);
+    }
+    if (r.kind === "part"){
+      const t = document.createElement("span"); t.className = "tag"; t.textContent = "이어붙임";
+      t.title = "이 줄이 원본 CSV 에 통째로는 없어서, 앞절과 뒷절을 각각 찾아 이어붙였습니다.";
       row.append(t);
     }
     if (r.kind === "amb"){

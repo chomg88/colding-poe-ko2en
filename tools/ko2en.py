@@ -102,11 +102,12 @@ FRAME_FLAG = {
     "타락됨": "Corrupted", "타락": "Corrupted",
     "감정되지 않음": "Unidentified", "미감정": "Unidentified",
     "거울 복제됨": "Mirrored", "복제됨": "Mirrored", "반사된": "Mirrored",
-    "분열됨": "Split", "분할됨": "Split",
+    "분열됨": "Fractured", "분열된 아이템": "Fractured Item",
+    "분할됨": "Split", "분할된": "Split",
     "쉐이퍼 아이템": "Shaper Item", "엘더 아이템": "Elder Item",
     "정복자 아이템": "Warlord Item", "구원자 아이템": "Redeemer Item",
     "성전사 아이템": "Crusader Item", "사냥꾼 아이템": "Hunter Item",
-    "합성 아이템": "Synthesised Item", "균열 아이템": "Fractured Item",
+    "합성 아이템": "Synthesised Item",
 }
 # 한글 클라이언트도 이 표기는 영문 그대로 찍는다 -> 있는 그대로 통과시킨다
 SUFFIX_EN = {"implicit","crafted","enchant","fractured","scourge","synthesised",
@@ -115,7 +116,7 @@ SUFFIX_EN = {"implicit","crafted","enchant","fractured","scourge","synthesised",
 SUFFIX = {
     "내재": "implicit", "제작됨": "crafted", "제작": "crafted",
     "인챈트": "enchant", "각인": "enchant",
-    "균열": "fractured", "합성": "synthesised", "스컬지": "scourge",
+    "분열": "fractured", "합성": "synthesised", "스컬지": "scourge",
 }
 # 베이스타입 앞에 붙는 접두
 BASE_PREFIX = [("상급 ", "Superior "), ("정교한 ", "Superior "),
@@ -130,7 +131,7 @@ SUFFIX_RE = re.compile(r"^(.*?)\s*\((.+?)\)\s*$")
 
 # 촉매가 붙은 장신구: "퀄리티 (저항 속성 부여): +20% (augmented)"
 # 게임은 '속성 부여', 한글 POB 는 '보정/속성 향상' 으로 쓴다. 둘 다 받는다.
-QUAL_TAIL_RE = re.compile(r"\s*(?:속성 부여|속성 향상|보정)$")
+QUAL_TAIL_RE = re.compile(r"\s*(?:속성 부여|속성 향상|보정|속성)$")
 QUAL_HEAD = {
     "공격": "Attack", "능력치": "Attribute", "시전": "Caster", "주문": "Caster",
     "카오스": "Chaos", "냉기": "Cold", "치명타": "Critical", "방어": "Defence",
@@ -144,7 +145,7 @@ QUAL_HEAD = {
 # "{ 대가의 제작 접두어 속성 부여 "개량된" (등급: 2) — 피해, 원소 }"
 ADV_RE = re.compile(r"^\{\s*(.*?)\s*\}$")
 ADV_HEAD_RE = re.compile(
-    r'^(?P<kind>.*?속성\s*부여)'          # 대가의 제작 접두어 속성 부여
+    r'^(?P<kind>.*?속성(?:\s*부여)?)(?=\s|$)'   # 대가의 제작 접두어 속성 부여 / 세계 포식자 고정 속성
     r'(?:\s*"(?P<name>[^"]*)")?'           # "개량된"
     r'(?:\s*\((?P<paren>[^)]*)\))?'        # (등급: 2)
     r'(?P<rest>.*)$')                      # — 피해, 원소
@@ -156,6 +157,9 @@ ADV_KIND = {
     "합성": "Synthesised", "스컬지": "Scourge", "베일에 싸인": "Veiled",
     "베일": "Veiled", "타락된": "Corrupted", "타락": "Corrupted",
     "신성모독": "Desecrated", "룬": "Rune", "각인된": "Enchant",
+    "분열된": "Fractured", "분할된": "Split",
+    # 엘드리치 고정 속성. "세계 포식자 고정 속성" = Eater of Worlds Implicit Modifier
+    "세계 포식자": "Eater of Worlds", "작열의 총주교": "Searing Exarch",
 }
 # 속성 부여 뒤에 오는 태그 목록. 사전에도 있지만 다대일이라 되레 엉뚱하게 잡힌다.
 ADV_TAG = {
@@ -168,13 +172,13 @@ ADV_TAG = {
     "발사체": "Projectile", "상태 이상": "Ailment", "막기": "Block",
     "회복": "Recovery", "명중": "Accuracy", "흡수": "Leech", "오라": "Aura",
     "저주": "Curse", "젬": "Gem", "홈": "Socket", "지속 시간": "Duration",
-    "요구 사항": "Attribute", "인챈트": "Enchantment",
+    "요구 사항": "Attribute", "인챈트": "Enchantment", "출현": "Drop",
 }
 ADV_TIER_RE = re.compile(r"^\s*등급\s*:\s*(.+?)\s*$")
 # 줄 끝에 붙는 주석. "심연 홈 1개 — 변경이 불가능한 값"
 ADV_NOTE = {
     "변경이 불가능한 값": "Unscalable Value",
-    "합성됨": "Synthesised", "분열됨": "Split",
+    "합성됨": "Synthesised", "분열됨": "Fractured",
 }
 ADV_PCT_RE = re.compile(r"^(\S+%)\s*(증가|감소)$")
 DASH_RE = re.compile(r"\s+[—–]\s+")          # 고급 정보 구분자 (em/en dash)
@@ -203,6 +207,7 @@ class Reverse:
     def __init__(self, data_dir, verbose=False):
         self.exact = {}                    # ko -> (prio, en)
         self.by_body = defaultdict(list)   # body(ko) -> [(prio, ko, en)]
+        self.clause = {}                   # '앞절' ko -> (prio, en)
         n = 0
         for f in sorted(glob.glob(os.path.join(data_dir, "*.csv"))):
             p = priority(f)
@@ -219,6 +224,14 @@ class Reverse:
                         self.exact[ko] = (p, en)
                     if "{" in ko and "{" in en:
                         self.by_body[body(ko)].append((p, ko, en))
+                    # 원본 CSV 에 구멍이 있어도 '앞절, 뒷절' 로 이어붙일 수 있게
+                    # 앞절 대응만 따로 모아둔다. ("고유 적이 접근해 있는 동안" 등)
+                    ik, ie = ko.find(", "), en.find(", ")
+                    if ik > 0 and ie > 0:
+                        kp = ko[:ik]
+                        cur = self.clause.get(kp)
+                        if cur is None or p < cur[0]:
+                            self.clause[kp] = (p, en[:ie])
         for v in self.by_body.values():
             v.sort(key=lambda t: (t[0], -len(t[1])))
         if verbose:
@@ -234,6 +247,19 @@ class Reverse:
             if vals is not None:
                 return Tmpl(et).render(vals)
         return None
+
+    def clause_join(self, ko):
+        """통째로는 사전에 없지만 '앞절, 뒷절' 이 각각 있는 줄을 이어붙인다.
+        한글 POB CSV 에 빠진 항목이 실제로 있다 — 세계 포식자 고정 속성의
+        '고유 적이 접근해 있는 동안, 주문 피해 {0}% 증가' 가 그런 경우다."""
+        i = ko.find(", ")
+        if i <= 0:
+            return None
+        ep = self.clause.get(ko[:i])
+        if ep is None:
+            return None
+        er = self.mod(ko[i + 2:])
+        return f"{ep[1]}, {er}" if er else None
 
     def compose(self, s):
         """마법 아이템 이름 '접두 베이스 - 접미' 에서 베이스타입만 복원한다.
@@ -285,7 +311,9 @@ class Reverse:
             parts.append('"%s"' % self.term(m.group("name"), {}))
         if m.group("paren"):
             t = ADV_TIER_RE.match(m.group("paren"))
-            parts.append("(%s)" % (f"Tier: {t.group(1)}" if t else m.group("paren")))
+            # (등급: 2) 는 Tier, (우수한) 같은 엘드리치 등급 이름은 사전에 있다
+            parts.append("(%s)" % (f"Tier: {t.group(1)}" if t
+                                   else self.term(m.group("paren"), {})))
         for chunk in DASH_RE.split(m.group("rest")):
             chunk = chunk.strip()
             if not chunk:
@@ -357,6 +385,10 @@ class Reverse:
                     if sub:
                         en = ep + sub
                         break
+        if en is None:
+            en = self.clause_join(core)
+            if en is not None:
+                return (f"{en} ({sfx})" if sfx else en), "part"
         if en is None:
             en = self.compose(core)
             if en is not None:
