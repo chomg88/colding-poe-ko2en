@@ -1,0 +1,472 @@
+<title>POB 아이템 역번역기</title>
+<style>
+:root{
+  --ground:#eceef2; --panel:#ffffff; --panel-2:#f5f6f9;
+  --ink:#171a20; --ink-2:#3d434e; --muted:#5a6270; --faint:#8b93a1;
+  --line:#d6dae1; --line-soft:#e5e8ed;
+  --accent:#a35d24; --accent-soft:#a35d2418;
+  --s-ok:#4d5ab8; --s-frame:#6b7280; --s-amb:#8a6c0e; --s-miss:#ab452f; --s-base:#2f7d6a;
+  --s-ok-bg:#4d5ab812; --s-amb-bg:#8a6c0e14; --s-miss-bg:#ab452f12;
+  --focus:#a35d24;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ground:#0c0e12; --panel:#14171c; --panel-2:#101318;
+    --ink:#e2e6ec; --ink-2:#b9c0cb; --muted:#868f9e; --faint:#666e7c;
+    --line:#252a32; --line-soft:#1c2027;
+    --accent:#d68b4c; --accent-soft:#d68b4c1a;
+    --s-ok:#8b96e8; --s-frame:#7b8494; --s-amb:#d3ab3e; --s-miss:#e08067; --s-base:#4fae95;
+    --s-ok-bg:#8b96e814; --s-amb-bg:#d3ab3e14; --s-miss-bg:#e0806714;
+    --focus:#d68b4c;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0c0e12; --panel:#14171c; --panel-2:#101318;
+  --ink:#e2e6ec; --ink-2:#b9c0cb; --muted:#868f9e; --faint:#666e7c;
+  --line:#252a32; --line-soft:#1c2027;
+  --accent:#d68b4c; --accent-soft:#d68b4c1a;
+  --s-ok:#8b96e8; --s-frame:#7b8494; --s-amb:#d3ab3e; --s-miss:#e08067; --s-base:#4fae95;
+  --s-ok-bg:#8b96e814; --s-amb-bg:#d3ab3e14; --s-miss-bg:#e0806714;
+  --focus:#d68b4c;
+}
+
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0; background:var(--ground); color:var(--ink);
+  font-family:"Pretendard","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",
+              -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  font-size:14px; line-height:1.55; -webkit-font-smoothing:antialiased;
+}
+.mono{font-family:ui-monospace,"SF Mono","JetBrains Mono",Menlo,Consolas,"Liberation Mono",monospace}
+.lbl{font-size:11px; letter-spacing:.09em; text-transform:uppercase; color:var(--faint); font-weight:600}
+
+.app{display:flex; flex-direction:column; height:100dvh; min-height:0}
+
+/* header */
+header{
+  display:flex; align-items:baseline; gap:14px; flex-wrap:wrap;
+  padding:14px 20px; border-bottom:1px solid var(--line); background:var(--panel-2);
+}
+h1{margin:0; font-size:15px; font-weight:650; letter-spacing:-.01em}
+h1 .dir{color:var(--accent); font-weight:600}
+header .sub{font-size:12px; color:var(--muted); margin-right:auto}
+#tally{display:flex; gap:12px; align-items:center; font-size:12px; color:var(--muted)}
+#tally b{font-variant-numeric:tabular-nums; color:var(--ink-2); font-weight:600}
+
+/* workbench */
+main{flex:1; display:grid; grid-template-columns:1fr 1fr; min-height:0}
+.pane{display:flex; flex-direction:column; min-width:0; min-height:0; background:var(--panel)}
+.pane+.pane{border-left:1px solid var(--line)}
+.pane>.head{
+  display:flex; align-items:center; gap:10px; padding:9px 16px;
+  border-bottom:1px solid var(--line-soft); background:var(--panel-2);
+}
+.pane>.head .grow{margin-left:auto; display:flex; gap:6px}
+
+textarea{
+  flex:1; width:100%; resize:none; border:0; outline:0; padding:16px 18px;
+  background:transparent; color:var(--ink); font:inherit; line-height:1.75;
+  min-height:0;
+}
+textarea::placeholder{color:var(--faint)}
+textarea:focus-visible{box-shadow:inset 2px 0 0 var(--focus)}
+
+#out{flex:1; overflow:auto; padding:16px 0; min-height:0}
+.ln{
+  display:flex; align-items:baseline; gap:10px; padding:1px 18px 1px 0;
+  border-left:2px solid transparent; white-space:pre-wrap; word-break:break-word;
+  font-family:ui-monospace,"SF Mono","JetBrains Mono",Menlo,Consolas,monospace;
+  font-size:13px; line-height:1.7;
+}
+.ln>.txt{padding-left:16px}
+.ln.ok{border-left-color:var(--s-ok)}
+.ln.frame,.ln.flag{border-left-color:var(--s-frame); color:var(--ink-2)}
+.ln.amb{border-left-color:var(--s-amb); background:var(--s-amb-bg); cursor:pointer}
+.ln.miss{border-left-color:var(--s-miss); background:var(--s-miss-bg); color:var(--s-miss)}
+.ln.base{border-left-color:var(--s-base)}
+.ln.base .tag{color:var(--s-base); border:1px solid var(--s-base)}
+.ln.sep{padding:0; margin:9px 0 9px 18px; border-left:0}
+.ln.sep .txt{padding:0; width:100%; border-top:1px solid var(--line); font-size:0; line-height:0; height:0}
+.ln .tag{
+  font-size:10px; letter-spacing:.06em; text-transform:uppercase; font-weight:700;
+  padding:0 5px; border-radius:3px; flex:none; align-self:center;
+}
+.ln.amb .tag{color:var(--s-amb); border:1px solid var(--s-amb)}
+.ln.miss .tag{color:var(--s-miss); border:1px solid var(--s-miss)}
+.alts{
+  margin:2px 0 6px 18px; padding:7px 12px; border-left:2px solid var(--s-amb);
+  background:var(--s-amb-bg); font-size:12px; color:var(--ink-2);
+}
+.alts .lbl{display:block; margin-bottom:4px}
+.alts button{
+  display:block; width:100%; text-align:left; background:none; border:0; padding:2px 0;
+  color:var(--ink-2); font:inherit; cursor:pointer;
+  font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+}
+.alts button:hover,.alts button:focus-visible{color:var(--accent); outline:none; text-decoration:underline}
+
+/* controls */
+button.btn{
+  font:inherit; font-size:12px; font-weight:550; color:var(--ink-2);
+  background:var(--panel); border:1px solid var(--line); border-radius:5px;
+  padding:4px 11px; cursor:pointer;
+}
+button.btn:hover{border-color:var(--accent); color:var(--accent)}
+button.btn:focus-visible{outline:2px solid var(--focus); outline-offset:1px}
+button.btn.primary{background:var(--accent-soft); border-color:var(--accent); color:var(--accent)}
+
+/* boot + empty */
+.veil{
+  position:fixed; inset:0; display:grid; place-content:center; gap:12px; justify-items:center;
+  background:var(--ground); color:var(--muted); font-size:13px; z-index:9;
+}
+.bar{width:180px; height:2px; background:var(--line); overflow:hidden}
+.bar i{display:block; height:100%; width:40%; background:var(--accent); animation:sl 1.1s ease-in-out infinite}
+@keyframes sl{0%{transform:translateX(-100%)}100%{transform:translateX(320%)}}
+@media (prefers-reduced-motion:reduce){.bar i{animation:none; width:100%}}
+.empty{padding:24px 18px; color:var(--faint); font-size:13px; max-width:52ch}
+.empty code{font-size:12px; background:var(--panel-2); padding:1px 5px; border-radius:3px}
+
+footer{
+  padding:9px 20px; border-top:1px solid var(--line); background:var(--panel-2);
+  font-size:11.5px; color:var(--faint); display:flex; gap:16px; flex-wrap:wrap;
+}
+footer .key{display:inline-flex; align-items:center; gap:5px}
+footer .sw{width:9px; height:2px; border-radius:1px}
+
+@media (max-width:900px){
+  main{grid-template-columns:1fr; grid-template-rows:minmax(180px,40%) 1fr}
+  .pane+.pane{border-left:0; border-top:1px solid var(--line)}
+  header{padding:12px 14px}
+}
+</style>
+
+<div class="veil" id="veil">
+  <div class="bar"><i></i></div>
+  <div>번역 사전 여는 중 · 27만 항목</div>
+</div>
+
+<div class="app" hidden id="app">
+  <header>
+    <h1>POB 아이템 역번역기 <span class="dir">KO → EN</span></h1>
+    <span class="sub">한글 클라이언트에서 복사한 아이템을 영문 POB가 읽는 형태로 되돌립니다</span>
+    <div id="tally"></div>
+  </header>
+
+  <main>
+    <section class="pane">
+      <div class="head">
+        <span class="lbl">한글 원문</span>
+        <div class="grow">
+          <button class="btn" id="sample">예시</button>
+          <button class="btn" id="clear">비우기</button>
+        </div>
+      </div>
+      <textarea id="in" spellcheck="false" placeholder="게임에서 아이템을 Ctrl+C 한 뒤 여기에 붙여넣으세요."></textarea>
+    </section>
+
+    <section class="pane">
+      <div class="head">
+        <span class="lbl">영문 결과</span>
+        <div class="grow">
+          <button class="btn primary" id="copy">복사</button>
+        </div>
+      </div>
+      <div id="out"></div>
+    </section>
+  </main>
+
+  <footer>
+    <span class="key"><span class="sw" style="background:var(--s-ok)"></span>옵션 매칭</span>
+    <span class="key"><span class="sw" style="background:var(--s-frame)"></span>구조 · 속성</span>
+    <span class="key"><span class="sw" style="background:var(--s-base)"></span>베이스타입만 복원</span>
+    <span class="key"><span class="sw" style="background:var(--s-amb)"></span>후보 여럿 — 눌러서 교체</span>
+    <span class="key"><span class="sw" style="background:var(--s-miss)"></span>사전에 없음 — 원문 유지</span>
+  </footer>
+</div>
+
+<script>
+const DICT_B64 = "__DICT_B64__";
+
+/* ---------- PoeCharm3 translator.js 와 동일한 매칭 규칙 ---------- */
+const BODY_RE  = /[{}\d.+\-]/gu;                       // 인덱스 키: 숫자·자리표시자 제거
+const COLOR_RE = /\^[xX][0-9A-Fa-f]{6}|\^\d/g;         // POB 색상코드
+const body = s => s.replace(BODY_RE, "");
+const stripColor = s => s.replace(COLOR_RE, "");
+const esc = s => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+class Tmpl {
+  constructor(text){
+    this.seg = []; this.par = [];
+    let last = 0;
+    for (const m of text.matchAll(/\{(\d+)\}/g)){
+      this.seg.push(text.slice(last, m.index));
+      this.par.push(+m[1]);
+      last = m.index + m[0].length;
+    }
+    this.seg.push(text.slice(last));
+    this.rx = new RegExp("^" + this.seg.map(esc).join("(\\S+)") + "$");
+  }
+  parse(s){
+    const m = this.rx.exec(s);
+    if (!m) return null;
+    const o = {};
+    this.par.forEach((n,i) => o[n] = m[i+1]);
+    return o;
+  }
+  render(v){
+    let out = "";
+    for (let i = 0; i < this.par.length; i++)
+      out += this.seg[i] + (v[this.par[i]] ?? `{${this.par[i]}}`);
+    return out + this.seg[this.seg.length-1];
+  }
+}
+
+/* ---------- 게임 클라이언트 프레임 문구 (CSV에 없어 별도 표) ---------- */
+const FRAME_KEY = {
+  "아이템 종류":"Item Class","희귀도":"Rarity","아이템 희귀도":"Rarity","아이템 레벨":"Item Level",
+  "소켓":"Sockets","홈":"Sockets","요구 사항":"Requirements","요구사항":"Requirements",
+  "레벨":"Level","힘":"Str","민첩":"Dex","지능":"Int","퀄리티":"Quality","품질":"Quality",
+  "방어도":"Armour","회피":"Evasion Rating","회피도":"Evasion Rating","수호":"Ward",
+  "에너지 보호막":"Energy Shield","막기":"Chance to Block","막기 확률":"Chance to Block",
+  "물리 피해":"Physical Damage","원소 피해":"Elemental Damage","카오스 피해":"Chaos Damage",
+  "혼돈 피해":"Chaos Damage","초당 공격":"Attacks per Second","치명타 확률":"Critical Strike Chance",
+  "무기 범위":"Weapon Range","메모":"Note","노트":"Note",
+  "초당 공격 횟수":"Attacks per Second","한계 사용 횟수":"Charges","지도 등급":"Map Tier","지도 티어":"Map Tier",
+  "제한":"Limited to","반경":"Radius","회복":"Recovery","소모":"Consumes"
+};
+const FRAME_CLASS = {
+  "활":"Bows","지팡이":"Staves","전투 지팡이":"Warstaves","마법봉":"Wands","홀":"Sceptres",
+  "룬 단검":"Rune Daggers","단검":"Daggers","발톱":"Claws",
+  "한손 검":"One Hand Swords","찌르는 한손 검":"Thrusting One Hand Swords",
+  "한손 도끼":"One Hand Axes","한손 철퇴":"One Hand Maces",
+  "양손 검":"Two Hand Swords","양손 도끼":"Two Hand Axes","양손 철퇴":"Two Hand Maces",
+  "낚싯대":"Fishing Rods","마나 플라스크":"Mana Flasks","생명력 플라스크":"Life Flasks",
+  "유틸리티 플라스크":"Utility Flasks","복합 플라스크":"Hybrid Flasks",
+  "주얼":"Jewels","심연 주얼":"Abyss Jewels","반지":"Rings","허리띠":"Belts","목걸이":"Amulets",
+  "화살통":"Quivers","방패":"Shields","투구":"Helmets","장갑":"Gloves","장화":"Boots",
+  "갑옷":"Body Armours","지도":"Maps","보조 젬":"Support Gems","스킬 젬":"Skill Gems"
+};
+const FRAME_VAL = {"일반":"Normal","마법":"Magic","희귀":"Rare","고유":"Unique",
+  "젬":"Gem","화폐":"Currency","점술 카드":"Divination Card"};
+const FRAME_FLAG = {
+  "타락됨":"Corrupted","타락":"Corrupted","감정되지 않음":"Unidentified","미감정":"Unidentified",
+  "거울 복제됨":"Mirrored","복제됨":"Mirrored","반사된":"Mirrored","분열됨":"Split","분할됨":"Split",
+  "쉐이퍼 아이템":"Shaper Item","엘더 아이템":"Elder Item","정복자 아이템":"Warlord Item",
+  "구원자 아이템":"Redeemer Item","성전사 아이템":"Crusader Item","사냥꾼 아이템":"Hunter Item",
+  "합성 아이템":"Synthesised Item","균열 아이템":"Fractured Item"
+};
+/* 한글 클라이언트도 이 표기는 영문 그대로 찍는다 -> 있는 그대로 통과 */
+const SUFFIX_EN = new Set(["implicit","crafted","enchant","fractured","scourge",
+  "synthesised","veiled","augmented","rune","desecrated","corrupted"]);
+const SUFFIX = {"내재":"implicit","제작됨":"crafted","제작":"crafted","인챈트":"enchant",
+  "각인":"enchant","균열":"fractured","합성":"synthesised","스컬지":"scourge"};
+const BASE_PREFIX = [["상급 ","Superior "],["정교한 ","Superior "],
+                     ["결합된 ","Synthesised "],["합성 ","Synthesised "]];
+const SUFFIX_RE = /^(.*?)\s*\((.+?)\)\s*$/;
+
+let T, P, A;
+
+/* 한 옵션 줄 → {en, alts} */
+function mod(ko){
+  const p = P[ko];
+  if (p !== undefined) return {en:p, alts:A[ko] || null};
+  const cands = T[body(ko)];
+  if (!cands) return null;
+  let first = null; const alts = [];
+  for (const [kt, et] of cands){
+    const v = new Tmpl(kt).parse(ko);
+    if (!v) continue;
+    const en = new Tmpl(et).render(v);
+    if (first === null) first = en;
+    if (!alts.includes(en)) alts.push(en);
+  }
+  if (first === null) return null;
+  return {en:first, alts: alts.length > 1 ? alts : null};
+}
+
+/* 마법 아이템 이름 '접두 베이스 - 접미' 에서 베이스타입만 복원 */
+function compose(s){
+  const core = s.split(" - ")[0].trim();
+  const w = core.split(/\s+/);
+  for (let i = 0; i < w.length; i++){
+    const hit = P[w.slice(i).join(" ")];
+    if (hit) return hit;
+  }
+  return null;
+}
+
+function line(raw){
+  const s = stripColor(raw).trim();
+  if (!s) return {en:"", kind:"blank"};
+  if (/^-{3,}$/.test(s)) return {en:"--------", kind:"sep"};
+
+  if (s.includes(": ") || s.endsWith(":")){
+    const i = s.indexOf(":");
+    const k = s.slice(0, i).trim(), v = s.slice(i+1).trim();
+    let ek = FRAME_KEY[k];
+    if (!ek && P[k+":"]) ek = P[k+":"].replace(/:$/, "");
+    if (ek){
+      let ev = (ek === "Item Class" ? FRAME_CLASS[v] : null) || FRAME_VAL[v];
+      if (!ev && v && !/^[\d.,%+\-\s]*$/.test(v)) ev = mod(v)?.en;
+      return {en: v ? `${ek}: ${ev || v}` : `${ek}:`, kind:"frame"};
+    }
+  }
+  if (FRAME_FLAG[s]) return {en:FRAME_FLAG[s], kind:"flag"};
+
+  let core = s, sfx = null;
+  const m = SUFFIX_RE.exec(s);
+  if (m && (SUFFIX[m[2]] || SUFFIX_EN.has(m[2].toLowerCase()))){
+    core = m[1]; sfx = SUFFIX[m[2]] || m[2].toLowerCase();
+  }
+
+  let r = mod(core);
+  if (!r){
+    for (const [kp, ep] of BASE_PREFIX){
+      if (core.startsWith(kp)){
+        const sub = mod(core.slice(kp.length));
+        if (sub){ r = {en: ep + sub.en, alts:null}; break; }
+      }
+    }
+  }
+  if (!r){
+    const b = compose(core);
+    if (b) return {en:b, kind:"base"};
+    return {en:raw, kind:"miss"};
+  }
+  const wrap = e => sfx ? `${e} (${sfx})` : e;
+  return {
+    en: wrap(r.en),
+    kind: r.alts ? "amb" : "ok",
+    alts: r.alts ? r.alts.map(wrap) : null
+  };
+}
+
+/* ---------- UI ---------- */
+const $in = document.getElementById("in");
+const $out = document.getElementById("out");
+const $tally = document.getElementById("tally");
+const override = new Map();          // 줄번호 -> 사용자가 고른 대체 번역
+
+function render(){
+  const src = $in.value;
+  $out.textContent = "";
+  if (!src.trim()){
+    const d = document.createElement("div");
+    d.className = "empty";
+    d.innerHTML = '왼쪽에 한글 아이템 텍스트를 붙여넣으면 여기에 영문이 나옵니다. ' +
+                  '결과를 <code>복사</code>해 영문 POB의 아이템 입력칸에 그대로 넣으세요.';
+    $out.append(d);
+    $tally.textContent = "";
+    return;
+  }
+  const lines = src.split("\n").map(line);
+  let ok = 0, amb = 0, miss = 0, total = 0;
+  const frag = document.createDocumentFragment();
+
+  lines.forEach((r, i) => {
+    if (r.kind !== "sep" && r.kind !== "blank") total++;
+    if (r.kind === "ok" || r.kind === "frame" || r.kind === "flag" || r.kind === "base") ok++;
+    else if (r.kind === "amb"){ amb++; ok++; }
+    else if (r.kind === "miss") miss++;
+
+    const row = document.createElement("div");
+    row.className = "ln " + r.kind;
+    const txt = document.createElement("span");
+    txt.className = "txt";
+    txt.textContent = override.get(i) ?? r.en;
+    row.append(txt);
+
+    if (r.kind === "miss"){
+      const t = document.createElement("span"); t.className = "tag"; t.textContent = "없음";
+      row.append(t);
+    }
+    if (r.kind === "base"){
+      const t = document.createElement("span"); t.className = "tag"; t.textContent = "베이스만";
+      t.title = "마법 아이템 이름에서 베이스타입만 복원했습니다. 접사는 아래 옵션 줄에 그대로 있습니다.";
+      row.append(t);
+    }
+    if (r.kind === "amb"){
+      const t = document.createElement("span");
+      t.className = "tag"; t.textContent = r.alts.length + "안";
+      row.append(t);
+      row.tabIndex = 0;
+      row.setAttribute("role", "button");
+      row.setAttribute("aria-label", "다른 후보 보기");
+      const toggle = () => {
+        const open = row.nextElementSibling?.classList.contains("alts");
+        if (open){ row.nextElementSibling.remove(); return; }
+        const box = document.createElement("div");
+        box.className = "alts";
+        const l = document.createElement("span");
+        l.className = "lbl"; l.textContent = "같은 한글에 대응하는 다른 영문";
+        box.append(l);
+        r.alts.forEach(a => {
+          const b = document.createElement("button");
+          b.type = "button"; b.textContent = a;
+          b.onclick = e => { e.stopPropagation(); override.set(i, a); render(); };
+          box.append(b);
+        });
+        row.after(box);
+      };
+      row.onclick = toggle;
+      row.onkeydown = e => { if (e.key === "Enter" || e.key === " "){ e.preventDefault(); toggle(); } };
+    }
+    frag.append(row);
+  });
+
+  $out.append(frag);
+  const pct = total ? Math.round(ok / total * 100) : 0;
+  $tally.innerHTML =
+    `매칭 <b>${pct}%</b>` +
+    (amb ? ` · 후보 여럿 <b>${amb}</b>` : "") +
+    (miss ? ` · 미매칭 <b>${miss}</b>` : "");
+}
+
+function plain(){
+  return $in.value.split("\n")
+    .map((src, i) => override.get(i) ?? line(src).en)
+    .join("\n");
+}
+
+let timer;
+$in.addEventListener("input", () => {
+  override.clear();
+  clearTimeout(timer);
+  timer = setTimeout(render, 90);
+});
+
+document.getElementById("copy").onclick = async e => {
+  const btn = e.currentTarget;
+  try {
+    await navigator.clipboard.writeText(plain());
+    btn.textContent = "복사됨";
+  } catch { btn.textContent = "복사 실패 — 직접 선택하세요"; }
+  setTimeout(() => btn.textContent = "복사", 1600);
+};
+document.getElementById("clear").onclick = () => { $in.value = ""; override.clear(); render(); $in.focus(); };
+document.getElementById("sample").onclick = () => {
+  $in.value = [
+    "아이템 종류: 방패","아이템 희귀도: 희귀","솔 수호","칠흑의 거대 방패","--------",
+    "막기 확률: 25%","방어도: 796 (augmented)","--------",
+    "요구사항:","레벨: 61","힘: 159","--------","홈: R-G ","--------",
+    "아이템 레벨: 61","--------","생명력 최대치 +23","--------",
+    "방어도 +130","방어도 49% 증가","생명력 최대치 +72","1초마다 생명력 30.8 재생",
+    "모든 원소 저항 +13%","26%의 확률로 원소 상태 이상 긴급회피"
+  ].join("\n");
+  override.clear(); render();
+};
+
+/* ---------- 사전 적재 ---------- */
+(async () => {
+  const bin = Uint8Array.from(atob(DICT_B64), c => c.charCodeAt(0));
+  const ds = new DecompressionStream("gzip");
+  const json = await new Response(new Blob([bin]).stream().pipeThrough(ds)).text();
+  ({t:T, p:P, a:A} = JSON.parse(json));
+  document.getElementById("veil").remove();
+  document.getElementById("app").hidden = false;
+  render();
+  $in.focus();
+})();
+</script>
