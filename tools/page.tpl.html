@@ -1,3 +1,5 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>POB 아이템 역번역기</title>
 <style>
 :root{
@@ -85,6 +87,8 @@ textarea:focus-visible{box-shadow:inset 2px 0 0 var(--focus)}
 .ln.amb{border-left-color:var(--s-amb); background:var(--s-amb-bg); cursor:pointer}
 .ln.miss{border-left-color:var(--s-miss); background:var(--s-miss-bg); color:var(--s-miss)}
 .ln.base{border-left-color:var(--s-base)}
+.ln.adv{border-left-color:var(--s-frame); color:var(--muted)}
+.ln.desc{border-left-color:var(--s-frame); color:var(--muted); font-style:italic}
 .ln.base .tag{color:var(--s-base); border:1px solid var(--s-base)}
 .ln.sep{padding:0; margin:9px 0 9px 18px; border-left:0}
 .ln.sep .txt{padding:0; width:100%; border-top:1px solid var(--line); font-size:0; line-height:0; height:0}
@@ -179,7 +183,7 @@ footer .sw{width:9px; height:2px; border-radius:1px}
 
   <footer>
     <span class="key"><span class="sw" style="background:var(--s-ok)"></span>옵션 매칭</span>
-    <span class="key"><span class="sw" style="background:var(--s-frame)"></span>구조 · 속성</span>
+    <span class="key"><span class="sw" style="background:var(--s-frame)"></span>구조 · 속성 · 고급 정보</span>
     <span class="key"><span class="sw" style="background:var(--s-base)"></span>베이스타입만 복원</span>
     <span class="key"><span class="sw" style="background:var(--s-amb)"></span>후보 여럿 — 눌러서 교체</span>
     <span class="key"><span class="sw" style="background:var(--s-miss)"></span>사전에 없음 — 원문 유지</span>
@@ -190,7 +194,10 @@ footer .sw{width:9px; height:2px; border-radius:1px}
 const DICT_B64 = "__DICT_B64__";
 
 /* ---------- PoeCharm3 translator.js 와 동일한 매칭 규칙 ---------- */
-const BODY_RE  = /[{}\d.+\-]/gu;                       // 인덱스 키: 숫자·자리표시자 제거
+// 괄호는 원본 규칙에 없다. 게임의 '고급 아이템 정보'가 값 뒤에 범위를 붙이므로
+// ("원소 피해 38(37-42)% 증가") 인덱스 키에서 같이 지운다. 사전·입력 양쪽에
+// 똑같이 적용되니 매칭은 그대로고, 범위는 {0} 자리에 통째로 실려 나간다.
+const BODY_RE  = /[{}()\d.+\-]/gu;                     // 인덱스 키: 숫자·자리표시자 제거
 const COLOR_RE = /\^[xX][0-9A-Fa-f]{6}|\^\d/g;         // POB 색상코드
 const body = s => s.replace(BODY_RE, "");
 const stripColor = s => s.replace(COLOR_RE, "");
@@ -234,7 +241,9 @@ const FRAME_KEY = {
   "혼돈 피해":"Chaos Damage","초당 공격":"Attacks per Second","치명타 확률":"Critical Strike Chance",
   "무기 범위":"Weapon Range","메모":"Note","노트":"Note",
   "초당 공격 횟수":"Attacks per Second","한계 사용 횟수":"Charges","지도 등급":"Map Tier","지도 티어":"Map Tier",
-  "제한":"Limited to","반경":"Radius","회복":"Recovery","소모":"Consumes"
+  "제한":"Limited to","반경":"Radius","회복":"Recovery","소모":"Consumes",
+  "공격 속도":"Attacks per Second","무기 범위(칸)":"Weapon Range","실험실":"Lab",
+  "무형성":"Intangibility"
 };
 const FRAME_CLASS = {
   "활":"Bows","지팡이":"Staves","전투 지팡이":"Warstaves","마법봉":"Wands","홀":"Sceptres",
@@ -265,6 +274,43 @@ const SUFFIX = {"내재":"implicit","제작됨":"crafted","제작":"crafted","�
 const BASE_PREFIX = [["상급 ","Superior "],["정교한 ","Superior "],
                      ["결합된 ","Synthesised "],["합성 ","Synthesised "]];
 const SUFFIX_RE = /^(.*?)\s*\((.+?)\)\s*$/;
+
+/* ---------- 게임 '고급 아이템 정보 표시' 문구 (역시 CSV에 없다) ---------- */
+/* 촉매 장신구: "퀄리티 (저항 속성 부여): +20% (augmented)"
+   게임은 '속성 부여', 한글 POB 는 '보정/속성 향상' 으로 쓴다. 둘 다 받는다. */
+const QUAL_TAIL_RE = /\s*(?:속성 부여|속성 향상|보정)$/;
+const QUAL_HEAD = {
+  "공격":"Attack","능력치":"Attribute","시전":"Caster","주문":"Caster","카오스":"Chaos",
+  "냉기":"Cold","치명타":"Critical","방어":"Defence","원소 피해":"Elemental Damage",
+  "원소":"Elemental","화염":"Fire","생명력 및 마나":"Life and Mana","생명력":"Life",
+  "번개":"Lightning","마나":"Mana","물리 및 카오스 피해":"Physical and Chaos Damage",
+  "물리 및 카오스":"Physical and Chaos","물리":"Physical","저항":"Resistance","속도":"Speed"
+};
+/* { 대가의 제작 접두어 속성 부여 "개량된" (등급: 2) — 피해, 원소 } */
+const ADV_RE = /^\{\s*([\s\S]*?)\s*\}$/;
+const ADV_HEAD_RE = /^(.*?속성\s*부여)(?:\s*"([^"]*)")?(?:\s*\(([^)]*)\))?([\s\S]*)$/;
+const ADV_KIND = {
+  "고정":"Implicit","내재":"Implicit","비고정":"Explicit","접두어":"Prefix","접미어":"Suffix",
+  "대가의 제작":"Master Crafted","제작됨":"Crafted","제작":"Crafted","인챈트":"Enchant",
+  "각인":"Enchant","각인된":"Enchant","균열된":"Fractured","균열":"Fractured",
+  "합성된":"Synthesised","합성":"Synthesised","스컬지":"Scourge","베일에 싸인":"Veiled",
+  "베일":"Veiled","타락된":"Corrupted","타락":"Corrupted","신성모독":"Desecrated","룬":"Rune"
+};
+const ADV_TAG = {
+  "피해":"Damage","원소":"Elemental","공격":"Attack","주문":"Caster","시전":"Caster",
+  "방어력":"Defences","방어도":"Armour","회피":"Evasion","에너지 보호막":"Energy Shield",
+  "카오스":"Chaos","저항":"Resistance","화염":"Fire","냉기":"Cold","번개":"Lightning",
+  "물리":"Physical","생명력":"Life","마나":"Mana","속도":"Speed","치명타":"Critical",
+  "능력치":"Attribute","소환수":"Minion","광역":"Area","발사체":"Projectile",
+  "상태 이상":"Ailment","막기":"Block","회복":"Recovery","명중":"Accuracy","흡수":"Leech",
+  "오라":"Aura","저주":"Curse","젬":"Gem","홈":"Socket","지속 시간":"Duration",
+  "요구 사항":"Attribute","인챈트":"Enchantment"
+};
+const ADV_TIER_RE = /^\s*등급\s*:\s*(.+?)\s*$/;
+const ADV_NOTE = {"변경이 불가능한 값":"Unscalable Value","합성됨":"Synthesised","분열됨":"Split"};
+const ADV_PCT_RE = /^(\S+%)\s*(증가|감소)$/;
+const DASH_RE = /\s+[—–]\s+/;     // 고급 정보 구분자
+const DESC_RE = /^\(.*\)$/;       // 통째로 괄호인 설명 줄
 
 let T, P, A;
 
@@ -297,16 +343,81 @@ function compose(s){
   return null;
 }
 
-function line(raw){
-  const s = stripColor(raw).trim();
-  if (!s) return {en:"", kind:"blank"};
-  if (/^-{3,}$/.test(s)) return {en:"--------", kind:"sep"};
+/* ---------- 고급 아이템 정보 ---------- */
+const term = (ko, table) => table[ko] || P[ko] || ko;
 
+/* 줄 끝 주석: '변경이 불가능한 값', '20% 증가' */
+function advNote(ko){
+  ko = ko.trim();
+  if (ADV_NOTE[ko]) return ADV_NOTE[ko];
+  const m = ADV_PCT_RE.exec(ko);
+  if (m) return `${m[1]} ${m[2] === "증가" ? "Increased" : "Reduced"}`;
+  return mod(ko)?.en || ko;
+}
+
+/* '{ }' 안쪽: 접두어 속성 부여 "압도하는" (등급: 2) — 피해, 원소, 공격 */
+function advanced(inner){
+  const m = ADV_HEAD_RE.exec(inner);
+  if (!m) return inner;
+  const [, kind, name, paren, rest] = m;
+  // '대가의 제작 접두어 속성 부여' -> Master Crafted Prefix Modifier
+  let words = kind.replace(QUAL_TAIL_RE, "").trim().split(/\s+/).filter(Boolean);
+  const out = [];
+  while (words.length){
+    let hit = false;
+    for (const n of [3,2,1]){                    // 긴 낱말('대가의 제작') 먼저
+      const en = ADV_KIND[words.slice(0,n).join(" ")];
+      if (en){ out.push(en); words = words.slice(n); hit = true; break; }
+    }
+    if (!hit) out.push(words.shift());
+  }
+  const parts = [out.concat("Modifier").join(" ")];
+  if (name) parts.push(`"${term(name, {})}"`);
+  if (paren){
+    const t = ADV_TIER_RE.exec(paren);
+    parts.push(`(${t ? "Tier: " + t[1] : paren})`);
+  }
+  for (const chunk of (rest || "").split(DASH_RE)){
+    const c = chunk.trim();
+    if (!c) continue;
+    parts.push("— " + (c.includes(",") || ADV_TAG[c]
+      ? c.split(",").map(t => term(t.trim(), ADV_TAG)).join(", ")
+      : advNote(c)));
+  }
+  return parts.join(" ");
+}
+
+function line(raw){
+  const s0 = stripColor(raw).trim();
+  if (!s0) return {en:"", kind:"blank"};
+  if (/^-{3,}$/.test(s0)) return {en:"--------", kind:"sep"};
+
+  const adv = ADV_RE.exec(s0);
+  if (adv) return {en:`{ ${advanced(adv[1])} }`, kind:"adv"};
+
+  // 옵션 줄 뒤에 붙는 주석을 떼고 본문만 번역: "심연 홈 1개 — 변경이 불가능한 값"
+  let s = s0, tail = "";
+  const d = DESC_RE.test(s0) ? null : DASH_RE.exec(s0);
+  if (d){ s = s0.slice(0, d.index).trim(); tail = " — " + advNote(s0.slice(d.index + d[0].length)); }
+
+  const r = translateLine(s, raw);
+  if (tail && r.kind !== "miss") r.en += tail;
+  return r;
+}
+
+function translateLine(s, raw){
   if (s.includes(": ") || s.endsWith(":")){
     const i = s.indexOf(":");
     const k = s.slice(0, i).trim(), v = s.slice(i+1).trim();
     let ek = FRAME_KEY[k];
     if (!ek && P[k+":"]) ek = P[k+":"].replace(/:$/, "");
+    if (!ek){                       // "퀄리티 (저항 속성 부여)" 처럼 괄호로 한정된 이름
+      const q = SUFFIX_RE.exec(k);
+      if (q && FRAME_KEY[q[1].trim()]){
+        const qt = QUAL_HEAD[q[2].replace(QUAL_TAIL_RE, "").trim()];
+        if (qt) ek = `${FRAME_KEY[q[1].trim()]} (${qt} Modifiers)`;
+      }
+    }
     if (ek){
       let ev = (ek === "Item Class" ? FRAME_CLASS[v] : null) || FRAME_VAL[v];
       if (!ev && v && !/^[\d.,%+\-\s]*$/.test(v)) ev = mod(v)?.en;
@@ -333,6 +444,9 @@ function line(raw){
   if (!r){
     const b = compose(core);
     if (b) return {en:b, kind:"base"};
+    // ("심연 주얼"만 심연의 홈에 장착할 수 있습니다) 같은 설명 줄.
+    // POB 가 읽지 않고 넘기므로 한글 그대로 통과시켜도 무해하다.
+    if (DESC_RE.test(s)) return {en:s, kind:"desc"};
     return {en:raw, kind:"miss"};
   }
   const wrap = e => sfx ? `${e} (${sfx})` : e;
@@ -348,6 +462,8 @@ const $in = document.getElementById("in");
 const $out = document.getElementById("out");
 const $tally = document.getElementById("tally");
 const override = new Map();          // 줄번호 -> 사용자가 고른 대체 번역
+
+const OK_KINDS = new Set(["ok","frame","flag","base","adv","desc"]);
 
 function render(){
   const src = $in.value;
@@ -367,7 +483,7 @@ function render(){
 
   lines.forEach((r, i) => {
     if (r.kind !== "sep" && r.kind !== "blank") total++;
-    if (r.kind === "ok" || r.kind === "frame" || r.kind === "flag" || r.kind === "base") ok++;
+    if (OK_KINDS.has(r.kind)) ok++;
     else if (r.kind === "amb"){ amb++; ok++; }
     else if (r.kind === "miss") miss++;
 
@@ -448,12 +564,21 @@ document.getElementById("copy").onclick = async e => {
 document.getElementById("clear").onclick = () => { $in.value = ""; override.clear(); render(); $in.focus(); };
 document.getElementById("sample").onclick = () => {
   $in.value = [
-    "아이템 종류: 방패","아이템 희귀도: 희귀","솔 수호","칠흑의 거대 방패","--------",
-    "막기 확률: 25%","방어도: 796 (augmented)","--------",
-    "요구사항:","레벨: 61","힘: 159","--------","홈: R-G ","--------",
-    "아이템 레벨: 61","--------","생명력 최대치 +23","--------",
-    "방어도 +130","방어도 49% 증가","생명력 최대치 +72","1초마다 생명력 30.8 재생",
-    "모든 원소 저항 +13%","26%의 확률로 원소 상태 이상 긴급회피"
+    "아이템 종류: 허리띠","아이템 희귀도: 희귀","크라켄의 가죽끈","명계의 조임쇠","--------",
+    "퀄리티 (저항 속성 부여): +20% (augmented)","--------",
+    "요구사항:","레벨: 67","--------","홈: A ","--------","아이템 레벨: 85","--------",
+    "{ 고정 속성 부여 }","심연 홈 1개 — 변경이 불가능한 값",
+    "(\"심연 주얼\"만 심연의 홈에 장착할 수 있습니다)","--------",
+    "{ 접두어 속성 부여 \"압도하는\" (등급: 2) — 피해, 원소, 공격 }",
+    "공격 스킬의 원소 피해 38(37-42)% 증가",
+    "{ 접두어 속성 부여 \"가로 덧댄\" (등급: 6) — 방어력, 방어도 }",
+    "방어도 +55(36-60)",
+    "{ 대가의 제작 접두어 속성 부여 \"개량된\" — 피해 }",
+    "피해 17(15-17)% 증가",
+    "{ 접미어 속성 부여 \"- 바메스\" (등급: 1) — 카오스, 저항  — 20% 증가 }",
+    "카오스 저항 +32(31-35)%",
+    "{ 접미어 속성 부여 \"- 엘더\" (등급: 1) — 원소, 저항  — 20% 증가 }",
+    "모든 원소 저항 +18(16-18)%","--------","엘더 아이템"
   ].join("\n");
   override.clear(); render();
 };

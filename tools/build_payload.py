@@ -17,8 +17,15 @@ NAME_FILES = {ud.normalize("NFC", x) for x in (
 
 
 def build(data_dir=DEFAULT_DATA, full=False):
+    files = sorted(glob.glob(os.path.join(data_dir, "*.csv")))
+    # 경로가 틀리면 glob 이 빈 목록을 주고 그대로 '빈 사전'이 만들어진다.
+    # 배포본을 조용히 망가뜨리므로 여기서 멈춘다.
+    if not files:
+        raise SystemExit(f"번역 CSV 를 찾지 못했습니다: {data_dir}\n"
+                         "한글 POB 의 Data/Translate/ko-KR 를 저장소 루트의 Data/ 로 두거나, "
+                         "KO2EN_DATA 환경변수로 경로를 지정하세요.")
     tmpl, plain, alts = {}, {}, {}
-    for f in sorted(glob.glob(os.path.join(data_dir, "*.csv"))):
+    for f in files:
         b = ud.normalize("NFC", os.path.basename(f))
         if not full and b in NAME_FILES:
             continue

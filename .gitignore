@@ -2,3 +2,12 @@ __pycache__/
 *.pyc
 dict.b64
 pob-ko2en.html
+
+# 한글 POB 의 번역 CSV (109MB). 각자 POB 배포본에서 복사해 온다.
+Data/
+
+# 한글 POB 배포본 자체를 이 폴더에 풀어둔 경우
+POE1 한글 POB */
+
+# 로컬 미리보기 설정
+.claude/

@@ -13,11 +13,17 @@ KO -> EN 아이템 텍스트 역번역기.
 import csv, glob, os, re, sys, argparse, unicodedata as ud
 from collections import defaultdict
 
-DEFAULT_DATA = ("/Users/1113260/Downloads/POE1&2 분리 - 비밀번호 pob/"
-                "데이터만 (폰트,번역파일) - 비밀번호 pob/Data/Translate/ko-KR")
+# 한글 POB 의 번역 CSV 폴더. 저장소 루트의 Data/Translate/ko-KR 를 기본으로 보고,
+# 다른 곳에 두었으면 KO2EN_DATA 환경변수나 --data 로 넘긴다.
+_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DEFAULT_DATA = os.environ.get("KO2EN_DATA") or os.path.join(_ROOT, "Data", "Translate", "ko-KR")
 
 # translator.js 의 function a(e){return e.replace(/[{}\d.+-]/gu,"")}
-BODY_RE = re.compile(r"[{}\d.+\-]", re.UNICODE)
+# 괄호는 원본에 없다. 게임의 '고급 아이템 정보'가 값 뒤에 범위를 붙이기 때문에
+# ("공격 스킬의 원소 피해 38(37-42)% 증가") 인덱스 키에서 같이 지운다.
+# 사전 쪽과 입력 쪽에 동일하게 적용되므로 매칭은 그대로 성립하고,
+# 범위는 {0} 자리에 통째로 잡혀 영문에도 38(37-42) 로 그대로 실려 나간다.
+BODY_RE = re.compile(r"[{}()\d.+\-]", re.UNICODE)
 COLOR_RE = re.compile(r"\^[xX][0-9A-Fa-f]{6}|\^[0-9]")
 
 def body(s):
@@ -72,21 +78,8 @@ FRAME_KEY = {
     "초당 공격 횟수": "Attacks per Second", "공격 속도": "Attacks per Second",
     "무기 범위(칸)": "Weapon Range", "한계 사용 횟수": "Charges",
     "지도 등급": "Map Tier", "지도 티어": "Map Tier",
-    "실험실": "Lab", "제한": "Limited to", "반경": "Radius",
+    "실험실": "Lab", "제한": "Limited to", "반경": "Radius", "무형성": "Intangibility",
     "회복": "Recovery", "소모": "Consumes",
-}
-FRAME_CLASS = {
-    "활": "Bows", "지팡이": "Staves", "전투 지팡이": "Warstaves", "마법봉": "Wands", "홀": "Sceptres",
-    "룬 단검": "Rune Daggers", "단검": "Daggers", "발톱": "Claws",
-    "한손 검": "One Hand Swords", "찌르는 한손 검": "Thrusting One Hand Swords",
-    "한손 도끼": "One Hand Axes", "한손 철퇴": "One Hand Maces",
-    "양손 검": "Two Hand Swords", "양손 도끼": "Two Hand Axes", "양손 철퇴": "Two Hand Maces",
-    "낚싯대": "Fishing Rods", "마나 플라스크": "Mana Flasks", "생명력 플라스크": "Life Flasks",
-    "유틸리티 플라스크": "Utility Flasks", "복합 플라스크": "Hybrid Flasks",
-    "주얼": "Jewels", "심연 주얼": "Abyss Jewels", "반지": "Rings", "허리띠": "Belts",
-    "목걸이": "Amulets", "화살통": "Quivers", "방패": "Shields", "투구": "Helmets",
-    "장갑": "Gloves", "장화": "Boots", "갑옷": "Body Armours", "지도": "Maps",
-    "보조 젬": "Support Gems", "스킬 젬": "Skill Gems",
 }
 FRAME_CLASS = {
     "활": "Bows", "지팡이": "Staves", "전투 지팡이": "Warstaves", "마법봉": "Wands", "홀": "Sceptres",
@@ -129,6 +122,63 @@ BASE_PREFIX = [("상급 ", "Superior "), ("정교한 ", "Superior "),
                ("결합된 ", "Synthesised "), ("합성 ", "Synthesised ")]
 
 SUFFIX_RE = re.compile(r"^(.*?)\s*\((.+?)\)\s*$")
+
+# ---------------------------------------------------------------------------
+# 게임의 '고급 아이템 정보 표시' 로 붙는 문구들. 전부 클라이언트가 찍는 것이라
+# CSV 에 없다. 거래소 복사본에는 안 나오지만 게임에서 Ctrl+C 하면 항상 딸려온다.
+# ---------------------------------------------------------------------------
+
+# 촉매가 붙은 장신구: "퀄리티 (저항 속성 부여): +20% (augmented)"
+# 게임은 '속성 부여', 한글 POB 는 '보정/속성 향상' 으로 쓴다. 둘 다 받는다.
+QUAL_TAIL_RE = re.compile(r"\s*(?:속성 부여|속성 향상|보정)$")
+QUAL_HEAD = {
+    "공격": "Attack", "능력치": "Attribute", "시전": "Caster", "주문": "Caster",
+    "카오스": "Chaos", "냉기": "Cold", "치명타": "Critical", "방어": "Defence",
+    "원소 피해": "Elemental Damage", "원소": "Elemental", "화염": "Fire",
+    "생명력 및 마나": "Life and Mana", "생명력": "Life", "번개": "Lightning",
+    "마나": "Mana", "물리 및 카오스 피해": "Physical and Chaos Damage",
+    "물리 및 카오스": "Physical and Chaos", "물리": "Physical",
+    "저항": "Resistance", "속도": "Speed",
+}
+
+# "{ 대가의 제작 접두어 속성 부여 "개량된" (등급: 2) — 피해, 원소 }"
+ADV_RE = re.compile(r"^\{\s*(.*?)\s*\}$")
+ADV_HEAD_RE = re.compile(
+    r'^(?P<kind>.*?속성\s*부여)'          # 대가의 제작 접두어 속성 부여
+    r'(?:\s*"(?P<name>[^"]*)")?'           # "개량된"
+    r'(?:\s*\((?P<paren>[^)]*)\))?'        # (등급: 2)
+    r'(?P<rest>.*)$')                      # — 피해, 원소
+ADV_KIND = {
+    "고정": "Implicit", "내재": "Implicit", "비고정": "Explicit",
+    "접두어": "Prefix", "접미어": "Suffix", "대가의 제작": "Master Crafted",
+    "제작됨": "Crafted", "제작": "Crafted", "인챈트": "Enchant", "각인": "Enchant",
+    "균열된": "Fractured", "균열": "Fractured", "합성된": "Synthesised",
+    "합성": "Synthesised", "스컬지": "Scourge", "베일에 싸인": "Veiled",
+    "베일": "Veiled", "타락된": "Corrupted", "타락": "Corrupted",
+    "신성모독": "Desecrated", "룬": "Rune", "각인된": "Enchant",
+}
+# 속성 부여 뒤에 오는 태그 목록. 사전에도 있지만 다대일이라 되레 엉뚱하게 잡힌다.
+ADV_TAG = {
+    "피해": "Damage", "원소": "Elemental", "공격": "Attack", "주문": "Caster",
+    "시전": "Caster", "방어력": "Defences", "방어도": "Armour", "회피": "Evasion",
+    "에너지 보호막": "Energy Shield", "카오스": "Chaos", "저항": "Resistance",
+    "화염": "Fire", "냉기": "Cold", "번개": "Lightning", "물리": "Physical",
+    "생명력": "Life", "마나": "Mana", "속도": "Speed", "치명타": "Critical",
+    "능력치": "Attribute", "소환수": "Minion", "광역": "Area",
+    "발사체": "Projectile", "상태 이상": "Ailment", "막기": "Block",
+    "회복": "Recovery", "명중": "Accuracy", "흡수": "Leech", "오라": "Aura",
+    "저주": "Curse", "젬": "Gem", "홈": "Socket", "지속 시간": "Duration",
+    "요구 사항": "Attribute", "인챈트": "Enchantment",
+}
+ADV_TIER_RE = re.compile(r"^\s*등급\s*:\s*(.+?)\s*$")
+# 줄 끝에 붙는 주석. "심연 홈 1개 — 변경이 불가능한 값"
+ADV_NOTE = {
+    "변경이 불가능한 값": "Unscalable Value",
+    "합성됨": "Synthesised", "분열됨": "Split",
+}
+ADV_PCT_RE = re.compile(r"^(\S+%)\s*(증가|감소)$")
+DASH_RE = re.compile(r"\s+[—–]\s+")          # 고급 정보 구분자 (em/en dash)
+DESC_RE = re.compile(r"^\(.*\)$")            # 통째로 괄호인 설명 줄
 
 
 def priority(path):
@@ -196,16 +246,91 @@ class Reverse:
                 return hit[1]
         return None
 
+    # ---- 고급 아이템 정보 --------------------------------------------------
+
+    def term(self, ko, table):
+        """태그·접사이름처럼 짧은 낱말 하나. 손표 우선, 없으면 사전."""
+        return table.get(ko) or self.exact.get(ko, (9, None))[1] or ko
+
+    def note(self, ko):
+        """줄 끝 주석: '변경이 불가능한 값', '20% 증가'"""
+        ko = ko.strip()
+        if ko in ADV_NOTE:
+            return ADV_NOTE[ko]
+        m = ADV_PCT_RE.match(ko)
+        if m:
+            return f"{m.group(1)} {'Increased' if m.group(2) == '증가' else 'Reduced'}"
+        return self.mod(ko) or ko
+
+    def advanced(self, inner):
+        """'{ }' 안쪽. 접두어 속성 부여 "압도하는" (등급: 2) — 피해, 원소, 공격"""
+        m = ADV_HEAD_RE.match(inner)
+        if not m:
+            return inner
+        # '대가의 제작 접두어 속성 부여' -> Master Crafted Prefix Modifier
+        head = QUAL_TAIL_RE.sub("", m.group("kind")).strip()
+        words, out = head.split(), []
+        while words:
+            for n in (3, 2, 1):                    # 긴 낱말('대가의 제작') 먼저
+                en = ADV_KIND.get(" ".join(words[:n]))
+                if en:
+                    out.append(en)
+                    words = words[n:]
+                    break
+            else:
+                out.append(words.pop(0))
+        parts = [" ".join(out + ["Modifier"])]
+
+        if m.group("name"):
+            parts.append('"%s"' % self.term(m.group("name"), {}))
+        if m.group("paren"):
+            t = ADV_TIER_RE.match(m.group("paren"))
+            parts.append("(%s)" % (f"Tier: {t.group(1)}" if t else m.group("paren")))
+        for chunk in DASH_RE.split(m.group("rest")):
+            chunk = chunk.strip()
+            if not chunk:
+                continue
+            if "," in chunk or chunk in ADV_TAG:
+                tags = [self.term(t.strip(), ADV_TAG) for t in chunk.split(",")]
+                parts.append("— " + ", ".join(tags))
+            else:
+                parts.append("— " + self.note(chunk))
+        return " ".join(parts)
+
+    # ---- 한 줄 -------------------------------------------------------------
+
     def line(self, raw):
         s = strip_color(raw).strip()
         if not s or set(s) == {"-"}:
             return raw, "sep"
 
+        m = ADV_RE.match(s)
+        if m:
+            return "{ %s }" % self.advanced(m.group(1)), "adv"
+
+        # 옵션 줄 뒤에 붙는 주석을 떼어내고 본문만 번역한다.
+        #   심연 홈 1개 — 변경이 불가능한 값
+        tail = ""
+        bits = DASH_RE.split(s, 1)
+        if len(bits) == 2 and not DESC_RE.match(s):
+            s, tail = bits[0].strip(), " — " + self.note(bits[1])
+
+        en, kind = self._line(s, raw)
+        return (en + tail if kind != "MISS" else raw), kind
+
+    def _line(self, s, raw):
         # "키: 값" 형태
         if ": " in s or s.endswith(":"):
             k, _, v = s.partition(":")
             k, v = k.strip(), v.strip()
             ek = FRAME_KEY.get(k) or (self.exact.get(k + ":", (9, None))[1] or "").rstrip(":") or None
+            # "퀄리티 (저항 속성 부여)" 처럼 괄호로 한정된 속성 이름
+            if ek is None:
+                q = SUFFIX_RE.match(k)
+                if q and FRAME_KEY.get(q.group(1).strip()):
+                    qt = QUAL_HEAD.get(QUAL_TAIL_RE.sub("", q.group(2)).strip())
+                    if qt:
+                        ek = f"{FRAME_KEY[q.group(1).strip()]} ({qt} Modifiers)"
             if ek:
                 ev = ((FRAME_CLASS.get(v) if ek == "Item Class" else None)
                       or FRAME_VAL.get(v)
@@ -237,6 +362,10 @@ class Reverse:
             if en is not None:
                 return en, "base"
         if en is None:
+            # ("심연 주얼"만 심연의 홈에 장착할 수 있습니다) 같은 설명 줄.
+            # POB 는 읽지 않고 넘기므로 한글 그대로 통과시켜도 무해하다.
+            if DESC_RE.match(s):
+                return s, "desc"
             return raw, "MISS"
         return (f"{en} ({sfx})" if sfx else en), "ok"
 
