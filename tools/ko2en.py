@@ -363,9 +363,10 @@ class Reverse:
                 return en, "base"
         if en is None:
             # ("심연 주얼"만 심연의 홈에 장착할 수 있습니다) 같은 설명 줄.
-            # POB 는 읽지 않고 넘기므로 한글 그대로 통과시켜도 무해하다.
+            # POB 가 읽지 않는 문구라 번역해봐야 소용없고, 한글로 남겨두면
+            # 결과만 지저분해진다. 아예 뺀다.
             if DESC_RE.match(s):
-                return s, "desc"
+                return s, "drop"
             return raw, "MISS"
         return (f"{en} ({sfx})" if sfx else en), "ok"
 
@@ -382,6 +383,8 @@ def main():
     src = open(a.file, encoding="utf-8").read() if a.file else sys.stdin.read()
     r = Reverse(a.data, verbose=a.debug)
     for en, how in r.text(src):
+        if how == "drop" and not a.debug:
+            continue
         print(f"{en}\t[{how}]" if a.debug else en)
 
 
