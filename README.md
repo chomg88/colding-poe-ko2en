@@ -126,8 +126,26 @@ npm run deploy
 
 ### 자동 배포
 
-`main` 또는 `site` 브랜치의 `web/` 아래가 바뀌면 GitHub Actions 가 빌드해서 올린다
-(`.github/workflows/deploy.yml`). 저장소 시크릿 두 개가 필요하다.
+`.github/workflows/deploy.yml` 이 빌드해서 올린다.
+
+| 푸시한 브랜치 | 배포 |
+|---|---|
+| `release/**` | 프로덕션 (colding.xyz) |
+| `main` | 미리보기 |
+
+릴리스는 `main` 에서 `release/vX.Y.Z` 를 잘라 푸시한다.
+
+```bash
+git checkout -b release/v0.0.2 main
+git push -u origin release/v0.0.2
+```
+
+Cloudflare 의 '프로덕션 브랜치' 설정은 이름 하나만 받고 패턴을 못 쓴다.
+`release/v0.0.1` 을 그대로 넣으면 버전을 올릴 때마다 대시보드를 고쳐야 하므로,
+워크플로가 배포 시 넘기는 이름을 `release` 로 고정한다. 그래서 Cloudflare 쪽
+설정은 **프로덕션 브랜치 = `release`** 한 번이면 끝이다.
+
+저장소 시크릿 두 개가 필요하다.
 
 ```bash
 gh secret set CLOUDFLARE_API_TOKEN     # Cloudflare Pages: Edit 권한 토큰

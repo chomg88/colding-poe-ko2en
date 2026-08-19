@@ -2,9 +2,12 @@ name: Deploy
 
 # 사전(web/public/data/*.json.gz)은 저장소에 커밋돼 있으므로 CI 에서 Python 을
 # 돌릴 필요가 없다. CSV 가 갱신될 때만 로컬에서 build_data.py 를 돌려 커밋한다.
+# release/** 에 푸시하면 프로덕션, 그 외에는 미리보기로 나간다.
 on:
   push:
-    branches: [main, site]
+    branches:
+      - main
+      - "release/**"
     paths:
       - "web/**"
       - ".github/workflows/deploy.yml"
@@ -57,6 +60,23 @@ jobs:
           done
           [ "$missing" -eq 0 ] || { echo "사전 파일이 빠졌습니다. tools/build_data.py 결과를 커밋했는지 확인하세요."; exit 1; }
 
+      - name: 배포 대상 결정
+        id: target
+        # Cloudflare 의 '프로덕션 브랜치' 설정은 이름 하나만 받는다. 패턴이 안 되므로
+        # release/v0.0.1 을 그대로 넣으면 버전을 올릴 때마다 대시보드를 고쳐야 한다.
+        # 배포 시 넘기는 이름을 release 로 고정하면 release/** 어느 브랜치에서 밀든
+        # 프로덕션으로 취급되고, 설정은 한 번만 하면 된다.
+        run: |
+          set -euo pipefail
+          if [[ "${{ github.ref_name }}" == release/* ]]; then
+            echo "branch=release" >> "$GITHUB_OUTPUT"
+            echo "kind=프로덕션" >> "$GITHUB_OUTPUT"
+          else
+            echo "branch=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+            echo "kind=미리보기" >> "$GITHUB_OUTPUT"
+          fi
+          echo "${{ github.ref_name }} → $(cat "$GITHUB_OUTPUT")"
+
       - name: Pages 프로젝트 준비
         # wrangler pages deploy 는 비대화형에서 프로젝트를 자동 생성하지 않는다.
         # 없으면 만들고 있으면 넘어간다. 매 실행마다 돌아도 무해하다.
@@ -69,16 +89,16 @@ jobs:
             echo "프로젝트 있음 — 건너뜀"
           else
             echo "프로젝트 없음 — 생성"
-            npx wrangler pages project create colding-poe \
-              --production-branch="${{ github.ref_name }}"
+            npx wrangler pages project create colding-poe --production-branch=release
           fi
 
-      - name: Cloudflare Pages 배포
+      - name: Cloudflare Pages 배포 (${{ steps.target.outputs.kind }})
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: web
-          # 브랜치 이름을 그대로 넘긴다. 프로덕션인지 미리보기인지는
-          # Cloudflare 프로젝트의 '프로덕션 브랜치' 설정이 정한다.
-          command: pages deploy --branch=${{ github.ref_name }}
+          command: >-
+            pages deploy
+            --branch=${{ steps.target.outputs.branch }}
+            --commit-message="${{ github.ref_name }} @ ${{ github.sha }}"
