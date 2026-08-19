@@ -15,8 +15,22 @@ const pick = (prefix) => {
   if (!f) throw new Error(`public/data/ 에 ${prefix}*.json.gz 가 없습니다. tools/build_data.py 를 먼저 실행하세요.`);
   return `/data/${f}`;
 };
+
+const jsonld = {
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  name: "아이템 변환기",
+  url: new URL("/", Astro.site).href,
+  applicationCategory: "UtilitiesApplication",
+  operatingSystem: "Web",
+  inLanguage: "ko",
+  description:
+    "한글 클라이언트에서 복사한 Path of Exile 아이템을 영문 Path of Building 형식으로 바꿉니다.",
+  offers: { "@type": "Offer", price: "0", priceCurrency: "KRW" },
+};
 ---
 <Base
+  jsonld={jsonld}
   title="아이템 변환기"
   description="한글 클라이언트에서 복사한 Path of Exile 아이템을 영문 Path of Building 형식으로 바꿉니다."
 >
