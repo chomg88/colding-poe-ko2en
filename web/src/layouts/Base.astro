@@ -30,6 +30,13 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:image" content={new URL("/og.png", Astro.site)} />
 
+    {SITE.verification?.naver && (
+      <meta name="naver-site-verification" content={SITE.verification.naver} />
+    )}
+    {SITE.verification?.google && (
+      <meta name="google-site-verification" content={SITE.verification.google} />
+    )}
+
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="alternate icon" href="/favicon.ico" sizes="any" />
 
