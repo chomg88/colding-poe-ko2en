@@ -2,8 +2,7 @@
 export const SITE = {
   name: "POE 툴박스",
   tagline: "Path of Exile 한국 유저를 위한 도구 모음",
-  // 도메인 확정 전 임시값. Cloudflare Pages 연결 후 실제 도메인으로 교체.
-  origin: "https://example.com",
+  origin: "https://colding.xyz",
   // 애드센스 승인 후 ca-pub-... 을 넣으면 광고 슬롯이 켜진다. 비어 있으면 꺼진다.
   adsenseClient: "",
 };
