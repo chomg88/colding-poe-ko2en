@@ -102,6 +102,28 @@ web/src/
 새 도구는 `web/src/pages/tools/` 에 페이지를 만들고 `site.js` 의 `TOOLS` 에 한 줄
 추가하면 됩니다. 랜딩 카드와 사이트맵에 자동 반영됩니다.
 
+## 배포
+
+Cloudflare Pages 에 wrangler 로 올린다.
+
+```bash
+cd web
+npx wrangler login          # 최초 1회. 브라우저가 열린다
+npm run deploy              # 빌드 + 배포
+```
+
+미리보기 배포는 `npm run deploy:pre` — 프로덕션 주소에 영향을 주지 않는다.
+
+CI 나 비대화형 환경에서는 `wrangler login` 대신 API 토큰을 쓴다.
+Cloudflare 대시보드에서 **Cloudflare Pages: Edit** 권한 토큰을 만들어:
+
+```bash
+export CLOUDFLARE_API_TOKEN=...
+npm run deploy
+```
+
+설정은 `web/wrangler.toml` 에 있다 — 프로젝트명 `colding-poe`, 출력 `dist`.
+
 ## 다시 빌드하기
 
 한글 POB 배포본의 `Data/Translate/ko-KR` 를 저장소 루트에 `Data/` 로 복사한 뒤

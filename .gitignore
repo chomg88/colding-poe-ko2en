@@ -18,3 +18,7 @@ pob-ko2en.html
 web/node_modules/
 web/dist/
 web/.astro/
+
+# wrangler
+web/.wrangler/
+.dev.vars

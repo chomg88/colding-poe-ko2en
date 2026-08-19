@@ -1,0 +1,11 @@
+# Cloudflare Pages 배포 설정.
+#   npm run deploy       빌드 후 배포
+#   npm run deploy:pre   미리보기 배포 (프로덕션에 영향 없음)
+#
+# 인증은 둘 중 하나:
+#   npx wrangler login                     브라우저 OAuth (개인 작업용)
+#   export CLOUDFLARE_API_TOKEN=...        토큰 (CI·비대화형용)
+
+name = "colding-poe"
+pages_build_output_dir = "dist"
+compatibility_date = "2026-08-19"
