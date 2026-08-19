@@ -5,6 +5,12 @@ export const SITE = {
   origin: "https://colding.xyz",
   // 애드센스 승인 후 ca-pub-... 을 넣으면 광고 슬롯이 켜진다. 비어 있으면 꺼진다.
   adsenseClient: "",
+  // 검색엔진 소유확인 메타 태그. 비어 있는 항목은 렌더링하지 않는다.
+  // 공개돼도 되는 값이다 — HTML 에 박히는 것이 목적이다.
+  verification: {
+    naver: "279e9b466ae6b858d67b15b9ffe85f1a5500be45",
+    google: "",
+  },
 };
 
 // 도구 목록. 새 도구를 추가하면 랜딩 카드와 네비게이션에 자동 반영된다.
