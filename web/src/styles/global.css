@@ -36,12 +36,61 @@ code{font-family:var(--f-mono); font-size:.88em; color:var(--ink-2);
 .brand:hover{text-decoration:none; color:var(--ink)}
 /* 마름모 하나. 게임 UI 의 각진 느낌을 아주 작게만 빌려온다 */
 .brand .mk{width:7px; height:7px; background:var(--accent); transform:rotate(45deg); flex:none}
-.site-nav{margin-left:auto; display:flex; gap:18px; font-size:var(--t-md)}
-.site-nav a{color:var(--muted); font-weight:550; position:relative}
-.site-nav a:hover{color:var(--ink-2); text-decoration:none}
-.site-nav a[aria-current="page"]{color:var(--ink)}
-.site-nav a[aria-current="page"]::after{
-  content:""; position:absolute; left:0; right:0; bottom:-17px; height:2px; background:var(--accent);
+/* 탭바 — 현재 항목 아래 앰버 실선. 헤더 아래 테두리 위에 겹쳐 그린다 */
+.tabs{margin-left:auto; display:flex; gap:4px; height:100%; align-items:stretch}
+.tabs a{
+  display:flex; align-items:center; padding:0 14px; position:relative;
+  color:var(--muted); font-weight:550; font-size:var(--t-md); white-space:nowrap;
+}
+.tabs a:hover{color:var(--ink-2); text-decoration:none; background:rgba(255,255,255,.03)}
+.tabs a[aria-current="page"]{color:var(--ink)}
+.tabs a[aria-current="page"]::after{
+  content:""; position:absolute; left:0; right:0; bottom:-1px; height:2px; background:var(--accent);
+}
+
+/* ── 도구 페이지 머리말 ── */
+.lede{padding-block:var(--sp-6) var(--sp-4); max-width:64ch}
+.lede p{margin:10px 0 0; color:var(--muted); line-height:1.75}
+
+/* ── 사용법 ── */
+.guide{max-width:74ch; padding-block:var(--sp-6)}
+.guide h2{margin:var(--sp-7) 0 var(--sp-3); font-size:var(--t-xl)}
+.guide h2:first-child{margin-top:0}
+.guide-note{color:var(--muted); margin:0 0 var(--sp-4); line-height:1.75}
+
+.steps{list-style:none; counter-reset:s; margin:0; padding:0; display:grid; gap:var(--sp-4)}
+.steps li{counter-increment:s; position:relative; padding-left:38px}
+.steps li::before{
+  content:counter(s); position:absolute; left:0; top:1px;
+  width:24px; height:24px; display:grid; place-content:center;
+  font-size:var(--t-sm); font-weight:700; font-variant-numeric:tabular-nums;
+  color:var(--accent-hi); border:1px solid var(--line-2); border-radius:var(--r-sm);
+  background:var(--panel);
+}
+.steps h3{font-size:var(--t-base); margin:0 0 4px}
+.steps p{margin:0; color:var(--muted); line-height:1.75}
+
+/* 전후 비교 */
+.ba{display:grid; grid-template-columns:1fr 1fr; gap:var(--sp-3); margin:var(--sp-4) 0}
+.ba-col{display:flex; flex-direction:column; gap:6px; min-width:0}
+.ba pre{
+  margin:0; padding:12px 14px; overflow-x:auto;
+  background:var(--sunken); border:1px solid var(--line-2); border-radius:var(--r-md);
+  font-family:var(--f-mono); font-size:11.5px; line-height:1.65; color:var(--ink-2);
+}
+
+.colors,.faq{margin:0}
+.colors dt,.faq dt{
+  display:flex; align-items:center; gap:8px;
+  font-weight:620; color:var(--ink); margin-top:var(--sp-4);
+}
+.colors dt i{width:10px; height:2px; border-radius:1px; display:block; flex:none}
+.colors dd,.faq dd{margin:4px 0 0; color:var(--muted); line-height:1.75}
+.colors dt:first-child,.faq dt:first-child{margin-top:0}
+
+@media (max-width:720px){
+  .ba{grid-template-columns:1fr}
+  .tabs a{padding:0 10px; font-size:var(--t-sm)}
 }
 
 main{flex:1; width:100%}

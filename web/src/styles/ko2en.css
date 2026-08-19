@@ -92,3 +92,26 @@
   .tool{grid-template-columns:1fr; grid-template-rows:minmax(160px,42%) 1fr; height:auto; min-height:78vh}
   .pane + .pane{border-left:0; border-top:1px solid var(--line-2)}
 }
+
+/* ── 등급색 ──────────────────────────────────────────────
+   결과에서 읽어낸 아이템 등급을 이름 줄과 패널 테두리에 입힌다.
+   테두리는 글자색 그대로 쓰면 화면에서 과해서 가라앉힌 값(--rb-*)을 쓴다. */
+.tool[data-rarity="normal"]{--rar:var(--r-normal); --rar-line:var(--rb-normal)}
+.tool[data-rarity="magic"] {--rar:var(--r-magic);  --rar-line:var(--rb-magic)}
+.tool[data-rarity="rare"]  {--rar:var(--r-rare);   --rar-line:var(--rb-rare)}
+.tool[data-rarity="unique"]{--rar:var(--r-unique); --rar-line:var(--rb-unique)}
+
+.tool[data-rarity]:not([data-rarity=""]){
+  border-color:var(--rar-line);
+  transition:border-color .18s ease;
+}
+/* 결과 패널만 등급을 두른다. 왼쪽은 사용자가 편집하는 칸이라 그대로 둔다 */
+.tool[data-rarity]:not([data-rarity=""]) .pane:last-of-type{
+  border-left-color:var(--rar-line);
+}
+.ln.name .txt{
+  color:var(--rar, var(--ink));
+  font-family:var(--f-display);
+  font-size:14px;
+  letter-spacing:.01em;
+}

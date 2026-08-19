@@ -1,67 +1,210 @@
 ---
 import Base from "../layouts/Base.astro";
 import AdSlot from "../components/AdSlot.astro";
-import { SITE, TOOLS } from "../site.js";
+import "../styles/ko2en.css";
+import { readdirSync } from "node:fs";
+import { join } from "node:path";
+
+/* 사전 파일명에는 내용 해시가 박혀 있다(영구 캐시용).
+   빌드 시점에 public/data/ 를 훑어 실제 파일명을 찾아 data 속성으로 넘긴다.
+   import.meta.url 은 빌드 중 출력 경로를 가리켜 페이지를 옮기면 깨진다.
+   Astro 는 프로젝트 루트(web/)에서 실행되므로 cwd 기준이 안전하다. */
+const files = readdirSync(join(process.cwd(), "public", "data"));
+const pick = (prefix) => {
+  const f = files.find((x) => x.startsWith(prefix) && x.endsWith(".json.gz"));
+  if (!f) throw new Error(`public/data/ 에 ${prefix}*.json.gz 가 없습니다. tools/build_data.py 를 먼저 실행하세요.`);
+  return `/data/${f}`;
+};
 ---
-<Base>
-  <section class="hero">
-    <h1>{SITE.tagline}</h1>
+<Base
+  title="아이템 변환기"
+  description="한글 클라이언트에서 복사한 Path of Exile 아이템을 영문 Path of Building 형식으로 바꿉니다."
+>
+  <section class="lede">
+    <h1>아이템 변환기</h1>
     <p>
-      한글 클라이언트를 쓰면 영문 기준으로 만들어진 도구들과 말이 통하지 않습니다.
-      그 사이를 메우는 도구를 모읍니다. 전부 브라우저 안에서 동작하고,
-      입력한 내용은 서버로 전송되지 않습니다.
+      게임에서 아이템을 <code>Ctrl+C</code> 한 뒤 왼쪽에 붙여넣으세요.
+      영문 Path of Building 에 그대로 넣을 수 있는 형식으로 바꿔 줍니다.
     </p>
   </section>
 
-  <ul class="tools">
-    {TOOLS.map((t) => (
+  <div class="tool" data-tool data-core={pick("dict-core-")} data-names={pick("dict-names-")}>
+    <div class="veil" data-veil>
+      <div class="bar"><i></i></div>
+      <div data-note>변환 사전 내려받는 중 · 3.7MB</div>
+    </div>
+
+    <section class="pane" data-app hidden>
+      <div class="head">
+        <span class="lbl">한글 원문</span>
+        <div class="grow">
+          <button class="btn" type="button" data-sample>예시</button>
+          <button class="btn" type="button" data-clear>비우기</button>
+        </div>
+      </div>
+      <textarea data-in spellcheck="false" placeholder="게임에서 아이템을 Ctrl+C 한 뒤 여기에 붙여넣으세요."></textarea>
+    </section>
+
+    <section class="pane" data-app hidden>
+      <div class="head">
+        <span class="lbl">영문 결과</span>
+        <span class="tally" data-tally></span>
+        <div class="grow">
+          <button class="btn primary" type="button" data-copy>복사</button>
+        </div>
+      </div>
+      <div data-out></div>
+    </section>
+  </div>
+
+  <div class="legend">
+    <span><i style="background:var(--st-ok)"></i>옵션 매칭</span>
+    <span><i style="background:var(--st-mute)"></i>구조 · 속성</span>
+    <span><i style="background:var(--st-info)"></i>부분 복원</span>
+    <span><i style="background:var(--st-warn)"></i>후보 여럿 — 눌러서 교체</span>
+    <span><i style="background:var(--st-bad)"></i>사전에 없음 — 원문 유지</span>
+  </div>
+
+  <AdSlot slot="" />
+
+  <!-- ── 사용법 ────────────────────────────────────────── -->
+  <section class="guide">
+    <h2>사용법</h2>
+
+    <ol class="steps">
       <li>
-        <a href={t.href}>
-          <h2>{t.name}</h2>
-          <p>{t.blurb}</p>
-          <div class="tags">{t.tags.map((x) => <span>{x}</span>)}</div>
-        </a>
+        <h3>게임에서 아이템을 복사합니다</h3>
+        <p>
+          인벤토리나 창고에서 아이템 위에 커서를 올린 채 <code>Ctrl+C</code> 를 누릅니다.
+          아이템 정보가 텍스트로 클립보드에 담깁니다.
+          <strong>고급 아이템 정보 표시</strong>를 켠 상태로 복사해도 그대로 처리되니
+          접두어·접미어 등급까지 함께 넘길 수 있습니다.
+        </p>
       </li>
-    ))}
-    <li class="soon">
-      <h2>준비 중</h2>
-      <p>도구를 계속 추가할 예정입니다. 필요한 게 있으면 GitHub 이슈로 알려주세요.</p>
-    </li>
-  </ul>
+      <li>
+        <h3>위쪽 왼쪽 칸에 붙여넣습니다</h3>
+        <p>
+          <code>Ctrl+V</code> 로 붙여넣으면 오른쪽에 결과가 바로 나타납니다.
+          줄마다 왼쪽에 얇은 색 띠가 붙는데, 그 줄이 어떻게 변환됐는지를 나타냅니다.
+        </p>
+      </li>
+      <li>
+        <h3>복사해서 Path of Building 에 넣습니다</h3>
+        <p>
+          <strong>복사</strong> 버튼을 누른 뒤, 영문 POB 의 <em>Items</em> 탭에서
+          아이템 입력칸에 <code>Ctrl+V</code> 하면 됩니다.
+        </p>
+      </li>
+    </ol>
+
+    <h2>예시</h2>
+    <p class="guide-note">
+      아래는 실제 변환 결과입니다. <strong>예시</strong> 버튼을 누르면 같은 내용이
+      위쪽 칸에 채워지니 직접 확인해 보셔도 됩니다.
+    </p>
+
+    <div class="ba">
+      <div class="ba-col">
+        <span class="lbl">붙여넣은 한글</span>
+        <pre>아이템 종류: 허리띠
+아이템 희귀도: 희귀
+크라켄의 가죽끈
+명계의 조임쇠
+--------
+퀄리티 (저항 속성 부여): +20% (augmented)
+--------
+요구사항:
+레벨: 67
+--------
+아이템 레벨: 85
+--------
+&#123; 접두어 속성 부여 "압도하는" (등급: 2) — 피해, 원소, 공격 &#125;
+공격 스킬의 원소 피해 38(37-42)% 증가
+&#123; 대가의 제작 접두어 속성 부여 "개량된" — 피해 &#125;
+피해 17(15-17)% 증가
+--------
+엘더 아이템</pre>
+      </div>
+      <div class="ba-col">
+        <span class="lbl">변환된 영문</span>
+        <pre>Item Class: Belts
+Rarity: Rare
+Kraken Leash
+Stygian Vise
+--------
+Quality (Resistance Modifiers): +20% (augmented)
+--------
+Requirements:
+Level: 67
+--------
+Item Level: 85
+--------
+&#123; Prefix Modifier "Overwhelming" (Tier: 2) — Damage, Elemental, Attack &#125;
+38(37-42)% increased Elemental Damage with Attack Skills
+&#123; Master Crafted Prefix Modifier "Upgraded" — Damage &#125;
+17(15-17)% increased Damage
+--------
+Elder Item</pre>
+      </div>
+    </div>
+
+    <h2>결과 줄의 색</h2>
+    <p class="guide-note">
+      색은 게임의 아이템 등급색에서 가져왔습니다. 이미 아는 색이라 따로 외울 것이 없습니다.
+    </p>
+    <dl class="colors">
+      <dt><i style="background:var(--st-ok)"></i>옵션 매칭</dt>
+      <dd>사전에서 정확히 찾았습니다. 그대로 쓰시면 됩니다.</dd>
+
+      <dt><i style="background:var(--st-mute)"></i>구조 · 속성</dt>
+      <dd>아이템 종류, 요구 사항, 아이템 레벨처럼 옵션이 아닌 줄입니다.</dd>
+
+      <dt><i style="background:var(--st-info)"></i>부분 복원</dt>
+      <dd>
+        마법 아이템 이름에서 베이스타입만 살렸거나, 사전에 통째로는 없어서
+        앞절과 뒷절을 각각 찾아 이어붙인 줄입니다. POB 계산에는 영향이 없습니다.
+      </dd>
+
+      <dt><i style="background:var(--st-warn)"></i>후보 여럿</dt>
+      <dd>
+        같은 한글이 여러 영문에 대응합니다. 한글로 번역되면서 구분이 사라진 경우라
+        기계적으로는 판별할 수 없습니다. 줄을 누르면 다른 후보가 나오고, 골라서 바꿀 수 있습니다.
+      </dd>
+
+      <dt><i style="background:var(--st-bad)"></i>사전에 없음</dt>
+      <dd>
+        찾지 못해 한글을 그대로 둔 줄입니다. 새 리그에서 추가된 옵션이면 사전이
+        아직 갱신되지 않았을 수 있습니다.
+      </dd>
+    </dl>
+
+    <h2>잘 안 될 때</h2>
+    <dl class="faq">
+      <dt>결과에 한글이 남아 있습니다</dt>
+      <dd>
+        빨간 띠가 붙은 줄이 사전에서 찾지 못한 부분입니다. POB 가 그 줄만 무시하고
+        나머지는 정상적으로 읽는 경우가 대부분이라, 일단 붙여넣어 보시는 편이 빠릅니다.
+      </dd>
+
+      <dt>POB 가 아이템을 인식하지 못합니다</dt>
+      <dd>
+        <code>Rarity:</code> 줄이나 베이스타입 줄이 제대로 변환됐는지 확인해 주세요.
+        POB 는 이 두 줄로 아이템을 판별합니다. 이 부분이 한글로 남아 있으면 인식하지 못합니다.
+      </dd>
+
+      <dt>수치가 <code>38(37-42)</code> 처럼 나옵니다</dt>
+      <dd>
+        고급 아이템 정보 표시를 켠 상태로 복사하면 실제 값 뒤에 옵션의 범위가 함께 붙습니다.
+        원래 게임이 그렇게 내보내는 형식이고 POB 도 그대로 읽습니다.
+      </dd>
+    </dl>
+  </section>
 
   <AdSlot slot="" />
 </Base>
 
-<style>
-  .hero{padding-block:var(--sp-7) var(--sp-6); max-width:60ch}
-  .hero h1{font-size:var(--t-3xl); font-weight:680; letter-spacing:-.02em}
-  .hero p{margin:14px 0 0; color:var(--muted); line-height:1.75}
-
-  .tools{list-style:none; margin:0; padding:0; display:grid; gap:14px;
-    grid-template-columns:repeat(auto-fill, minmax(300px, 1fr))}
-  .tools li{margin:0}
-  .tools a{
-    display:block; height:100%; padding:20px; color:inherit; position:relative;
-    background:var(--panel); border:1px solid var(--line-2); border-radius:var(--r-md);
-    transition:border-color .14s ease, background .14s ease;
-  }
-  /* 위쪽 모서리에 액센트 실선. 게임의 아이템 테두리에서 가져온 신호 */
-  .tools a::before{
-    content:""; position:absolute; inset:-1px -1px auto -1px; height:2px;
-    background:var(--accent); opacity:.65; border-radius:var(--r-md) var(--r-md) 0 0;
-  }
-  .tools a:hover{border-color:var(--line-hi); background:var(--panel-2); text-decoration:none}
-  .tools a:hover::before{opacity:1}
-  .tools h2{font-size:var(--t-lg)}
-  .tools p{margin:8px 0 0; font-size:var(--t-md); color:var(--muted); line-height:1.6}
-  .tags{display:flex; gap:6px; margin-top:14px}
-  .tags span{
-    font-size:var(--t-xs); letter-spacing:.04em; color:var(--faint);
-    border:1px solid var(--line-2); border-radius:99px; padding:1px 9px;
-  }
-  .soon{
-    padding:20px; border:1px dashed var(--line-2); border-radius:var(--r-md); color:var(--faint);
-  }
-  .soon h2{font-size:var(--t-lg); color:var(--faint)}
-  .soon p{margin:8px 0 0; font-size:var(--t-md); line-height:1.6}
-</style>
+<script>
+  import { mount } from "../lib/ko2en/ui.js";
+  const el = document.querySelector("[data-tool]");
+  mount(el, { core: el.dataset.core, names: el.dataset.names });
+</script>

@@ -70,6 +70,37 @@ def main():
         cards.append((slug, meta))
         print(f"  {slug:<22} {meta['group']:<12} {meta['name']}")
 
+    # 한 화면에서 전부 훑어보는 대지. 카드 UI 없이 로컬에서 바로 확인할 때 쓴다.
+    figs = "\n".join(
+        f'  <figure>\n'
+        f'    <figcaption><span class="g">{m["group"]}</span>{m["name"]}'
+        f'<em>{m.get("subtitle","")}</em></figcaption>\n'
+        f'    <iframe src="{slug}" width="{m.get("w",760)}" height="{m.get("h",480)}"'
+        f' loading="lazy" title="{m["name"]}"></iframe>\n'
+        f'  </figure>'
+        for slug, m in cards
+    )
+    open(os.path.join(DIST, "index.html"), "w", encoding="utf-8").write(f"""<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><title>POE 툴박스 디자인 시스템</title>
+<style>
+  body{{margin:0; padding:40px 28px; background:#0b0a09; color:#cfc7b8;
+    font-family:"Pretendard","Apple SD Gothic Neo",-apple-system,sans-serif}}
+  h1{{font-size:22px; font-weight:660; margin:0 0 4px}}
+  .sub{{color:#7d7568; font-size:14px; margin:0 0 36px}}
+  figure{{margin:0 0 40px}}
+  figcaption{{display:flex; align-items:baseline; gap:10px; margin-bottom:10px;
+    font-size:15px; font-weight:620}}
+  figcaption .g{{font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:#af6025;
+    border:1px solid #5c3a19; border-radius:2px; padding:1px 7px; font-weight:700}}
+  figcaption em{{font-style:normal; color:#5c554b; font-size:13px; font-weight:400}}
+  iframe{{border:1px solid #2c2721; border-radius:4px; background:#0b0a09;
+    display:block; max-width:100%}}
+</style></head><body>
+<h1>POE 툴박스 디자인 시스템</h1>
+<p class="sub">{len(cards)}개 카드 · design/tokens.css 에서 생성 · 각 미리보기는 자체완결</p>
+{figs}
+</body></html>""")
+
     # 사이트가 쓰는 토큰
     site = os.path.join(ROOT, "web", "src", "styles", "tokens.css")
     open(site, "w", encoding="utf-8").write(

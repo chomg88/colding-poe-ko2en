@@ -1,6 +1,31 @@
 import { createTranslator } from "./engine.js";
 
 const OK_KINDS = new Set(["ok", "frame", "flag", "base", "adv", "part"]);
+
+/* 게임의 등급색을 결과에도 그대로 입힌다. 아이템 이름 줄과 결과 패널
+   테두리가 등급을 따라가면, 붙여넣은 것이 맞는 아이템인지 눈으로 바로 확인된다. */
+const RARITY = { Normal: "normal", Magic: "magic", Rare: "rare", Unique: "unique" };
+const RARITY_RE = /^Rarity:\s*(\w+)/;
+
+/** 번역된 줄들에서 등급과 '이름 줄' 위치를 찾는다.
+    아이템 텍스트는 Rarity: 다음에 이름(+베이스타입)이 오고 첫 구분선에서 끝난다. */
+function readRarity(lines) {
+  let rarity = null, from = -1;
+  for (let i = 0; i < lines.length; i++) {
+    const m = RARITY_RE.exec(lines[i].en || "");
+    if (m) { rarity = RARITY[m[1]] ?? null; from = i + 1; break; }
+  }
+  if (!rarity) return { rarity: null, names: new Set() };
+  const names = new Set();
+  for (let i = from; i < lines.length; i++) {
+    const k = lines[i].kind;
+    if (k === "sep") break;
+    if (k === "blank" || k === "drop") continue;
+    if (k === "frame" || k === "flag") continue;   // Item Level 등이 섞여 있으면 건너뛴다
+    names.add(i);
+  }
+  return { rarity, names };
+}
 const TAGS = {
   miss: ["없음", null],
   base: ["베이스만", "마법 아이템 이름에서 베이스타입만 복원했습니다. 접사는 아래 옵션 줄에 그대로 있습니다."],
@@ -47,6 +72,7 @@ export function mount(root, { core, names }) {
     const src = $in.value;
     $out.textContent = "";
     if (!src.trim()) {
+      root.dataset.rarity = "";
       const d = document.createElement("div");
       d.className = "empty";
       d.textContent = "왼쪽에 한글 아이템 텍스트를 붙여넣으면 여기에 영문이 나옵니다.";
@@ -55,6 +81,8 @@ export function mount(root, { core, names }) {
       return;
     }
     const lines = tr.text(src);
+    const { rarity, names } = readRarity(lines);
+    root.dataset.rarity = rarity ?? "";
     let ok = 0, amb = 0, miss = 0, total = 0;
     const frag = document.createDocumentFragment();
 
@@ -66,7 +94,7 @@ export function mount(root, { core, names }) {
       else if (r.kind === "miss") miss++;
 
       const row = document.createElement("div");
-      row.className = "ln " + r.kind;
+      row.className = "ln " + r.kind + (names.has(i) ? " name" : "");
       const txt = document.createElement("span");
       txt.className = "txt";
       txt.textContent = override.get(i) ?? r.en;

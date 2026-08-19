@@ -9,12 +9,19 @@ export const SITE = {
 };
 
 // 도구 목록. 새 도구를 추가하면 랜딩 카드와 네비게이션에 자동 반영된다.
+// 상단 탭바. 도구가 늘어나면 여기에 추가한다.
+export const TABS = [
+  { href: "/", label: "아이템 변환기" },
+  { href: "/tools/", label: "도구" },
+  { href: "/guides/", label: "가이드" },
+];
+
 export const TOOLS = [
   {
     slug: "ko2en",
-    href: "/tools/ko2en/",
-    name: "아이템 역번역기",
-    blurb: "한글 클라이언트에서 복사한 아이템을 영문 Path of Building 이 읽는 형태로 되돌립니다.",
+    href: "/",
+    name: "아이템 변환기",
+    blurb: "한글 클라이언트에서 복사한 아이템을 영문 Path of Building 형식으로 바꿉니다.",
     tags: ["번역", "POB"],
     ready: true,
   },
