@@ -1,0 +1,68 @@
+name: Deploy
+
+# 사전(web/public/data/*.json.gz)은 저장소에 커밋돼 있으므로 CI 에서 Python 을
+# 돌릴 필요가 없다. CSV 가 갱신될 때만 로컬에서 build_data.py 를 돌려 커밋한다.
+on:
+  push:
+    branches: [main, site]
+    paths:
+      - "web/**"
+      - ".github/workflows/deploy.yml"
+  workflow_dispatch:
+
+# 같은 브랜치에 연속으로 푸시하면 앞선 실행을 취소한다
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
+    defaults:
+      run:
+        working-directory: web
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: 의존성 설치
+        run: npm ci
+
+      - name: 빌드
+        run: npm run build
+
+      - name: 사전 참조 검증
+        # 페이지가 가리키는 사전 파일이 실제로 출력에 있는지 확인한다.
+        # 사전을 다시 만들고 커밋하지 않으면 해시가 어긋나 도구가 죽는데,
+        # 빌드는 성공하므로 여기서 잡지 않으면 배포된 뒤에야 드러난다.
+        run: |
+          set -euo pipefail
+          missing=0
+          for f in $(grep -o 'dict-[a-z]*-[a-f0-9]*\.json\.gz' dist/index.html | sort -u); do
+            if [ -f "dist/data/$f" ]; then
+              echo "  OK      $f"
+            else
+              echo "  없음    $f"
+              missing=1
+            fi
+          done
+          [ "$missing" -eq 0 ] || { echo "사전 파일이 빠졌습니다. tools/build_data.py 결과를 커밋했는지 확인하세요."; exit 1; }
+
+      - name: Cloudflare Pages 배포
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: web
+          # 브랜치 이름을 그대로 넘긴다. 프로덕션인지 미리보기인지는
+          # Cloudflare 프로젝트의 '프로덕션 브랜치' 설정이 정한다.
+          command: pages deploy --branch=${{ github.ref_name }}

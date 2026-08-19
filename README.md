@@ -124,6 +124,23 @@ npm run deploy
 
 설정은 `web/wrangler.toml` 에 있다 — 프로젝트명 `colding-poe`, 출력 `dist`.
 
+### 자동 배포
+
+`main` 또는 `site` 브랜치의 `web/` 아래가 바뀌면 GitHub Actions 가 빌드해서 올린다
+(`.github/workflows/deploy.yml`). 저장소 시크릿 두 개가 필요하다.
+
+```bash
+gh secret set CLOUDFLARE_API_TOKEN     # Cloudflare Pages: Edit 권한 토큰
+gh secret set CLOUDFLARE_ACCOUNT_ID    # 대시보드 우측의 Account ID
+```
+
+프로덕션인지 미리보기인지는 워크플로가 아니라 Cloudflare 프로젝트의
+**프로덕션 브랜치** 설정이 정한다. 워크플로는 브랜치 이름만 그대로 넘긴다.
+
+배포 전에 **사전 참조 검증**을 돌린다. 페이지가 가리키는 `dict-*.json.gz` 가 실제로
+출력에 있는지 확인하는 단계다. 사전을 다시 만들고 커밋하지 않으면 해시가 어긋나
+도구가 죽는데, 빌드 자체는 성공하므로 이 단계가 없으면 배포된 뒤에야 드러난다.
+
 ## 다시 빌드하기
 
 한글 POB 배포본의 `Data/Translate/ko-KR` 를 저장소 루트에 `Data/` 로 복사한 뒤
