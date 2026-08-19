@@ -1,0 +1,61 @@
+---
+import Base from "../layouts/Base.astro";
+import AdSlot from "../components/AdSlot.astro";
+import { SITE, TOOLS } from "../site.js";
+---
+<Base>
+  <section class="hero">
+    <h1>{SITE.tagline}</h1>
+    <p>
+      한글 클라이언트를 쓰면 영문 기준으로 만들어진 도구들과 말이 통하지 않습니다.
+      그 사이를 메우는 도구를 모읍니다. 전부 브라우저 안에서 동작하고,
+      입력한 내용은 서버로 전송되지 않습니다.
+    </p>
+  </section>
+
+  <ul class="tools">
+    {TOOLS.map((t) => (
+      <li>
+        <a href={t.href}>
+          <h2>{t.name}</h2>
+          <p>{t.blurb}</p>
+          <div class="tags">{t.tags.map((x) => <span>{x}</span>)}</div>
+        </a>
+      </li>
+    ))}
+    <li class="soon">
+      <h2>준비 중</h2>
+      <p>도구를 계속 추가할 예정입니다. 필요한 게 있으면 GitHub 이슈로 알려주세요.</p>
+    </li>
+  </ul>
+
+  <AdSlot slot="" />
+</Base>
+
+<style>
+  .hero{padding-block:56px 36px; max-width:60ch}
+  .hero h1{font-size:32px}
+  .hero p{margin:14px 0 0; color:var(--muted)}
+
+  .tools{list-style:none; margin:0; padding:0; display:grid; gap:14px;
+    grid-template-columns:repeat(auto-fill, minmax(300px, 1fr))}
+  .tools li{margin:0}
+  .tools a{
+    display:block; height:100%; padding:20px; color:inherit;
+    background:var(--panel); border:1px solid var(--line); border-radius:8px;
+    transition:border-color .12s ease;
+  }
+  .tools a:hover{border-color:var(--accent); text-decoration:none}
+  .tools h2{font-size:17px}
+  .tools p{margin:8px 0 0; font-size:14px; color:var(--muted)}
+  .tags{display:flex; gap:6px; margin-top:14px}
+  .tags span{
+    font-size:11px; letter-spacing:.04em; color:var(--faint);
+    border:1px solid var(--line); border-radius:99px; padding:1px 9px;
+  }
+  .soon{
+    padding:20px; border:1px dashed var(--line); border-radius:8px; color:var(--faint);
+  }
+  .soon h2{font-size:17px; color:var(--faint)}
+  .soon p{margin:8px 0 0; font-size:14px}
+</style>

@@ -1,0 +1,20 @@
+---
+/* 애드센스 슬롯. SITE.adsenseClient 가 비어 있으면 아무것도 렌더링하지 않는다.
+   승인 전까지 빈 자리나 깨진 광고가 보이지 않게 하기 위함이다. */
+import { SITE } from "../site.js";
+const { slot, layout = "auto" } = Astro.props;
+const on = Boolean(SITE.adsenseClient && slot);
+---
+{on && (
+  <div class="ad">
+    <ins
+      class="adsbygoogle"
+      style="display:block"
+      data-ad-client={SITE.adsenseClient}
+      data-ad-slot={slot}
+      data-ad-format={layout}
+      data-full-width-responsive="true"
+    />
+    <script is:inline>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+  </div>
+)}

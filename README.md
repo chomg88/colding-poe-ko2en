@@ -71,19 +71,50 @@ body(s) = s 에서 { } ( ) 숫자 . + - 를 전부 제거   // 인덱스 키
 
 파일명에 내용 해시가 있어 `immutable` 캐시가 걸립니다. 재방문 시 추가 전송이 없습니다.
 
+## 구조
+
+빌드가 둘로 나뉩니다. **Python 은 데이터, Astro 는 사이트**를 만듭니다.
+
+```
+Data/Translate/ko-KR/*.csv        109MB   한글 POB 에서 복사해 온 원본 (git 제외)
+        │  python3 tools/build_data.py
+        ▼
+web/public/data/dict-*.json.gz    4.7MB   내용 해시가 박힌 사전 (git 포함)
+        │  cd web && npm run build
+        ▼
+web/dist/                                 정적 사이트 → Cloudflare Pages
+```
+
+사전을 저장소에 넣어두는 이유는, 호스팅 빌드 환경에 109MB CSV 가 없기 때문입니다.
+CSV 가 갱신될 때만 로컬에서 다시 만들어 커밋합니다.
+
+```
+tools/         ko2en.py  build_payload.py  build_data.py    데이터 파이프라인
+web/src/
+  lib/ko2en/   engine.js    역번역 엔진 (도구 간 공유)
+               ui.js        도구 화면 조립
+  layouts/     Base.astro   Prose.astro
+  components/  Header  Footer  AdSlot
+  pages/       index  tools/ko2en  guides  privacy
+  site.js      사이트 이름 · 도메인 · 애드센스 ID · 도구 목록
+```
+
+새 도구는 `web/src/pages/tools/` 에 페이지를 만들고 `site.js` 의 `TOOLS` 에 한 줄
+추가하면 됩니다. 랜딩 카드와 사이트맵에 자동 반영됩니다.
+
 ## 다시 빌드하기
 
-한글 POB 배포본의 `Data/Translate/ko-KR` 를 저장소 루트에 `Data/` 로 복사한 뒤 (git 에는 올라가지 않습니다):
+한글 POB 배포본의 `Data/Translate/ko-KR` 를 저장소 루트에 `Data/` 로 복사한 뒤
+(git 에는 올라가지 않습니다):
 
 ```bash
-python3 tools/build_dist.py
+python3 tools/build_data.py
+cd web && npm run build
 ```
 
 다른 위치에 두었으면 `KO2EN_DATA` 환경변수나 `--data` 로 넘기면 됩니다.
 CSV 를 하나도 못 찾으면 빌드가 멈춥니다 — 예전에는 조용히 빈 사전을 만들어
-`docs/` 를 망가뜨렸습니다.
-
-`docs/` 가 새로 만들어집니다. 커밋해서 푸시하면 반영됩니다.
+결과물을 망가뜨렸습니다.
 
 명령줄에서 바로 쓰고 싶다면:
 

@@ -1,0 +1,88 @@
+/* 디자인 토큰. PoE 아이템 툴팁의 차가운 검정에서 출발한 슬레이트 중성색에,
+   고유 아이템 글자색(#af6025)에서 끌어온 번트 앰버 액센트. */
+:root{
+  --ground:#eceef2; --panel:#ffffff; --panel-2:#f5f6f9;
+  --ink:#171a20; --ink-2:#3d434e; --muted:#5a6270; --faint:#8b93a1;
+  --line:#d6dae1; --line-soft:#e5e8ed;
+  --accent:#a35d24; --accent-soft:#a35d2418;
+  --s-ok:#4d5ab8; --s-frame:#6b7280; --s-amb:#8a6c0e; --s-miss:#ab452f; --s-base:#2f7d6a;
+  --s-amb-bg:#8a6c0e14; --s-miss-bg:#ab452f12;
+  --focus:#a35d24;
+  --wrap:1120px;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ground:#0c0e12; --panel:#14171c; --panel-2:#101318;
+    --ink:#e2e6ec; --ink-2:#b9c0cb; --muted:#868f9e; --faint:#666e7c;
+    --line:#252a32; --line-soft:#1c2027;
+    --accent:#d68b4c; --accent-soft:#d68b4c1a;
+    --s-ok:#8b96e8; --s-frame:#7b8494; --s-amb:#d3ab3e; --s-miss:#e08067; --s-base:#4fae95;
+    --s-amb-bg:#d3ab3e14; --s-miss-bg:#e0806714;
+    --focus:#d68b4c;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0c0e12; --panel:#14171c; --panel-2:#101318;
+  --ink:#e2e6ec; --ink-2:#b9c0cb; --muted:#868f9e; --faint:#666e7c;
+  --line:#252a32; --line-soft:#1c2027;
+  --accent:#d68b4c; --accent-soft:#d68b4c1a;
+  --s-ok:#8b96e8; --s-frame:#7b8494; --s-amb:#d3ab3e; --s-miss:#e08067; --s-base:#4fae95;
+  --s-amb-bg:#d3ab3e14; --s-miss-bg:#e0806714;
+  --focus:#d68b4c;
+}
+
+*{box-sizing:border-box}
+html{ -webkit-text-size-adjust:100% }
+body{
+  margin:0; min-height:100dvh; background:var(--ground); color:var(--ink);
+  font-family:"Pretendard","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",
+              -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  font-size:15px; line-height:1.65; -webkit-font-smoothing:antialiased;
+  display:flex; flex-direction:column;
+}
+.mono{font-family:ui-monospace,"SF Mono","JetBrains Mono",Menlo,Consolas,monospace}
+.lbl{font-size:11px; letter-spacing:.09em; text-transform:uppercase; color:var(--faint); font-weight:600}
+.wrap{width:100%; max-width:var(--wrap); margin-inline:auto; padding-inline:20px}
+
+a{color:var(--accent); text-decoration:none}
+a:hover{text-decoration:underline}
+:focus-visible{outline:2px solid var(--focus); outline-offset:2px}
+
+h1,h2,h3{margin:0; line-height:1.3; text-wrap:balance; letter-spacing:-.015em}
+h1{font-size:26px; font-weight:680}
+h2{font-size:19px; font-weight:650}
+h3{font-size:16px; font-weight:650}
+
+/* ── 사이트 크롬 ── */
+.site-head{
+  position:sticky; top:0; z-index:20; background:var(--panel-2);
+  border-bottom:1px solid var(--line); backdrop-filter:saturate(1.2) blur(6px);
+}
+.site-head .wrap{display:flex; align-items:center; gap:22px; height:52px}
+.brand{display:flex; align-items:baseline; gap:8px; font-weight:680; color:var(--ink); font-size:15px}
+.brand:hover{text-decoration:none}
+.brand .dot{width:6px; height:6px; border-radius:50%; background:var(--accent); align-self:center}
+.site-nav{margin-left:auto; display:flex; gap:18px; font-size:14px}
+.site-nav a{color:var(--muted); font-weight:550}
+.site-nav a[aria-current="page"]{color:var(--ink)}
+
+main{flex:1; width:100%}
+.site-foot{
+  border-top:1px solid var(--line); background:var(--panel-2);
+  margin-top:56px; padding-block:22px; font-size:13px; color:var(--faint);
+}
+.site-foot .wrap{display:flex; gap:18px; flex-wrap:wrap; align-items:center}
+.site-foot nav{margin-left:auto; display:flex; gap:16px}
+
+/* ── 본문 페이지 ── */
+.prose{max-width:66ch; padding-block:40px}
+.prose p,.prose ul,.prose ol{margin:0 0 16px}
+.prose h2{margin:32px 0 12px}
+.prose h3{margin:24px 0 8px}
+.prose li{margin-bottom:6px}
+.prose code{font-family:ui-monospace,Menlo,monospace; font-size:.88em;
+  background:var(--panel-2); border:1px solid var(--line-soft); border-radius:4px; padding:1px 5px}
+
+/* ── 광고 슬롯 ── */
+.ad{margin:32px auto; text-align:center; min-height:0}
+.ad[data-empty]{display:none}

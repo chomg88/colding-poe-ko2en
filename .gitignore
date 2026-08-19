@@ -4,10 +4,17 @@ dict.b64
 pob-ko2en.html
 
 # 한글 POB 의 번역 CSV (109MB). 각자 POB 배포본에서 복사해 온다.
-Data/
+# 반드시 루트 기준(/)으로 고정할 것 — 'Data/' 로 두면 macOS 의 대소문자 무시
+# 파일시스템에서 web/public/data/ 까지 잡아 사전이 커밋되지 않는다.
+/Data/
 
 # 한글 POB 배포본 자체를 이 폴더에 풀어둔 경우
-POE1 한글 POB */
+/POE1 한글 POB */
 
 # 로컬 미리보기 설정
 .claude/
+
+# Astro
+web/node_modules/
+web/dist/
+web/.astro/

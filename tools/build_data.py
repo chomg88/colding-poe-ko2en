@@ -10,56 +10,15 @@
 .gz 를 그대로 받아 브라우저 DecompressionStream 으로 푼다.
 서버에 Content-Encoding 설정이 필요 없어 GitHub Pages 등 어디든 그대로 올라간다.
 """
-import gzip, hashlib, json, os, shutil, sys, unicodedata as ud
+import gzip, hashlib, json, os, sys, unicodedata as ud
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import build_payload
 from build_payload import build
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-# GitHub Pages 의 /docs 소스. tools/ 안에서 실행해도 저장소 루트의 docs/ 에 쓴다.
+# tools/ 안에서 실행해도 저장소 루트 기준으로 쓴다.
 ROOT = os.path.dirname(HERE) if os.path.basename(HERE) == "tools" else HERE
-DIST = os.path.join(ROOT, "docs")
-
-LOADER = '''
-/* ---------- 사전 적재 ---------- */
-const $veil = document.getElementById("veil");
-const $note = document.getElementById("veil-note");
-
-async function grab(url){
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`${url} — HTTP ${res.status}`);
-  const buf = new Uint8Array(await res.arrayBuffer());
-  // 호스트가 Content-Encoding: gzip 을 붙이면 브라우저가 이미 풀어서 준다.
-  // gzip 매직바이트(1f 8b)로 판별해 이중 해제를 피한다.
-  const gz = buf[0] === 0x1f && buf[1] === 0x8b;
-  const text = gz
-    ? await new Response(new Blob([buf]).stream()
-        .pipeThrough(new DecompressionStream("gzip"))).text()
-    : new TextDecoder().decode(buf);
-  return JSON.parse(text);
-}
-
-(async () => {
-  try {
-    const core = await grab("dict-core.json.gz");
-    T = core.t; P = core.p; A = core.a;
-    $veil.remove();
-    document.getElementById("app").hidden = false;
-    render();
-    $in.focus();
-    // 희귀 아이템 이름은 계산에 쓰이지 않으므로 뒤늦게 채워 넣는다
-    try {
-      Object.assign(P, await grab("dict-names.json.gz"));
-      if ($in.value.trim()) render();
-    } catch (e) { console.warn("이름 사전 생략:", e.message); }
-  } catch (e) {
-    $note.textContent = "사전을 불러오지 못했습니다 — " + e.message;
-    $note.style.color = "var(--s-miss)";
-    document.querySelector(".bar").remove();
-  }
-})();
-'''
-
+DIST = os.path.join(ROOT, "web", "public", "data")
 
 def main():
     os.makedirs(DIST, exist_ok=True)
@@ -100,22 +59,10 @@ def main():
         stamped[key] = fn
         print(f"  {fn:<32} {len(blob)/1e6:>5.2f} MB")
 
-    with open(os.path.join(DIST, "_headers"), "w") as f:
-        f.write("/dict-*.json.gz\n  Cache-Control: public, max-age=31536000, immutable\n"
-                "/index.html\n  Cache-Control: public, max-age=300\n")
-
-    tpl = open(os.path.join(HERE, "page.tpl.html"), encoding="utf-8").read()
-    tpl = tpl.replace('const DICT_B64 = "__DICT_B64__";\n', "")
-    head = tpl.index("/* ---------- 사전 적재 ---------- */")
-    tail = tpl.index("</script>", head)
-    tpl = tpl[:head] + LOADER.strip() + "\n" + tpl[tail:]
-    tpl = tpl.replace('<div>번역 사전 여는 중 · 27만 항목</div>',
-                      '<div id="veil-note">번역 사전 내려받는 중 · 3.7MB</div>')
-    tpl = tpl.replace('"dict-core.json.gz"', f'"{stamped["core"]}"')
-    tpl = tpl.replace('"dict-names.json.gz"', f'"{stamped["names"]}"')
-    out = os.path.join(DIST, "index.html")
-    open(out, "w", encoding="utf-8").write(tpl)
-    print(f"  {'index.html':<22} {os.path.getsize(out)/1e3:>5.1f} KB")
+    hdr = os.path.join(os.path.dirname(DIST), "_headers")   # web/public/_headers
+    with open(hdr, "w") as f:
+        f.write("/data/*\n  Cache-Control: public, max-age=31536000, immutable\n"
+                "/*\n  Cache-Control: public, max-age=600\n")
 
 
 if __name__ == "__main__":

@@ -1,0 +1,41 @@
+---
+import { SITE } from "../site.js";
+import Header from "../components/Header.astro";
+import Footer from "../components/Footer.astro";
+import "../styles/global.css";
+
+const { title, description, wide = false } = Astro.props;
+const full = title ? `${title} · ${SITE.name}` : `${SITE.name} — ${SITE.tagline}`;
+const desc = description ?? SITE.tagline;
+const canonical = new URL(Astro.url.pathname, Astro.site);
+---
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{full}</title>
+    <meta name="description" content={desc} />
+    <link rel="canonical" href={canonical} />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={full} />
+    <meta property="og:description" content={desc} />
+    <meta property="og:url" content={canonical} />
+    <meta name="twitter:card" content="summary" />
+    {SITE.adsenseClient && (
+      <script
+        async
+        src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${SITE.adsenseClient}`}
+        crossorigin="anonymous"
+      />
+    )}
+    <slot name="head" />
+  </head>
+  <body>
+    <Header />
+    <main class={wide ? "" : "wrap"}>
+      <slot />
+    </main>
+    <Footer />
+  </body>
+</html>
