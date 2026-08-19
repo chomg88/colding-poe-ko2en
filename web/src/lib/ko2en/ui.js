@@ -69,6 +69,10 @@ export function mount(root, { core, names }) {
   let tr = null;
 
   function render() {
+    // 사전이 아직 안 왔으면 그린다는 것 자체가 성립하지 않는다.
+    // 패널이 hidden 이라 실사용에서 닿기 어렵지만, 로드가 느릴 때
+    // 디바운스된 호출이 먼저 도착하면 tr 이 null 이라 터진다.
+    if (!tr) return;
     const src = $in.value;
     $out.textContent = "";
     if (!src.trim()) {
