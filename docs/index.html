@@ -646,7 +646,7 @@ async function grab(url){
 
 (async () => {
   try {
-    const core = await grab("dict-core-113f29c39f.json.gz");
+    const core = await grab("dict-core-0e56d57023.json.gz");
     T = core.t; P = core.p; A = core.a;
     $veil.remove();
     document.getElementById("app").hidden = false;
@@ -654,7 +654,7 @@ async function grab(url){
     $in.focus();
     // 희귀 아이템 이름은 계산에 쓰이지 않으므로 뒤늦게 채워 넣는다
     try {
-      Object.assign(P, await grab("dict-names-41e15eeda4.json.gz"));
+      Object.assign(P, await grab("dict-names-3ce7c78318.json.gz"));
       if ($in.value.trim()) render();
     } catch (e) { console.warn("이름 사전 생략:", e.message); }
   } catch (e) {

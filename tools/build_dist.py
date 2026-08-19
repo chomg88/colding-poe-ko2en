@@ -88,9 +88,12 @@ def main():
     stamped = {}
     for key, obj in (("core", core), ("names", nm)):
         raw = json.dumps(obj, ensure_ascii=False, separators=(",", ":")).encode()
-        # mtime=0 : 내용이 같으면 해시도 같게 (재빌드해도 캐시가 깨지지 않는다)
+        # 해시는 압축 결과가 아니라 JSON 원문에서 뽑는다.
+        # Python 3.11+ 의 gzip.compress(mtime=0) 은 zlib.compress(wbits=31) 로
+        # 우회하는데 gzip 헤더의 OS 바이트를 zlib 빌드가 정한다. 압축본을 해시하면
+        # 내용이 같아도 기계가 바뀌면 파일명이 바뀌어 캐시가 무의미하게 깨진다.
         blob = gzip.compress(raw, 9, mtime=0)
-        h = hashlib.sha256(blob).hexdigest()[:10]
+        h = hashlib.sha256(raw).hexdigest()[:10]
         fn = f"dict-{key}-{h}.json.gz"
         with open(os.path.join(DIST, fn), "wb") as f:
             f.write(blob)
