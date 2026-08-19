@@ -61,8 +61,17 @@ def main():
 
     hdr = os.path.join(os.path.dirname(DIST), "_headers")   # web/public/_headers
     with open(hdr, "w") as f:
-        f.write("/data/*\n  Cache-Control: public, max-age=31536000, immutable\n"
-                "/*\n  Cache-Control: public, max-age=600\n")
+        # Cloudflare Pages 는 매칭되는 규칙을 전부 이어붙인다. /data/* 는 /* 에도
+        # 걸리므로 그냥 두면 Cache-Control 에 max-age 가 두 개 실린다.
+        # '! 헤더명' 으로 앞서 붙은 값을 지우고 다시 넣는다.
+        f.write(
+            "/*\n"
+            "  Cache-Control: public, max-age=600\n"
+            "\n"
+            "/data/*\n"
+            "  ! Cache-Control\n"
+            "  Cache-Control: public, max-age=31536000, immutable\n"
+        )
 
 
 if __name__ == "__main__":
