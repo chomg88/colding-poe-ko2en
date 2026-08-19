@@ -11,8 +11,21 @@ export async function getStaticPaths() {
 const { post } = Astro.props;
 const { Content } = await render(post);
 const fmt = (d) => `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일`;
+
+const jsonld = {
+  "@context": "https://schema.org",
+  "@type": "Article",
+  headline: post.data.title,
+  description: post.data.description,
+  inLanguage: "ko",
+  datePublished: post.data.published.toISOString(),
+  ...(post.data.updated && { dateModified: post.data.updated.toISOString() }),
+  mainEntityOfPage: new URL(`/guides/${post.id}/`, Astro.site).href,
+  image: new URL("/og.png", Astro.site).href,
+  keywords: post.data.tags.join(", "),
+};
 ---
-<Base title={post.data.title} description={post.data.description}>
+<Base jsonld={jsonld} title={post.data.title} description={post.data.description}>
   <article class="prose">
     <header class="post-head">
       <h1>{post.data.title}</h1>

@@ -1,0 +1,31 @@
+---
+import Base from "../layouts/Base.astro";
+import { TOOLS } from "../site.js";
+---
+<Base title="페이지를 찾을 수 없습니다" description="요청하신 주소에 해당하는 페이지가 없습니다.">
+  <section class="nf">
+    <p class="code">404</p>
+    <h1>페이지를 찾을 수 없습니다</h1>
+    <p class="msg">
+      주소가 바뀌었거나 없는 페이지입니다. 아래에서 찾으시는 것이 있는지 확인해 보세요.
+    </p>
+    <ul class="links">
+      {TOOLS.map((t) => <li><a href={t.href}>{t.name}</a> — {t.blurb}</li>)}
+      <li><a href="/guides/">가이드</a> — 한글 클라이언트와 도구 사용에 대한 글</li>
+      <li><a href="/tools/">도구 목록</a></li>
+    </ul>
+  </section>
+</Base>
+
+<style>
+  .nf{padding-block:var(--sp-7); max-width:60ch}
+  .code{
+    margin:0; font-family:var(--f-display); font-size:64px; line-height:1;
+    color:var(--accent); font-variant-numeric:tabular-nums;
+  }
+  .nf h1{margin:var(--sp-3) 0 0; font-size:var(--t-xl)}
+  .msg{margin:var(--sp-3) 0 var(--sp-5); color:var(--muted); line-height:1.75}
+  .links{list-style:none; margin:0; padding:0; display:grid; gap:10px;
+    font-size:var(--t-md); color:var(--muted)}
+  .links a{font-weight:600}
+</style>
