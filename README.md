@@ -104,60 +104,17 @@ web/src/
 
 ## 배포
 
-Cloudflare Pages 에 wrangler 로 올린다.
-
-```bash
-cd web
-npx wrangler login          # 최초 1회. 브라우저가 열린다
-npm run deploy              # 빌드 + 배포
-```
-
-미리보기 배포는 `npm run deploy:pre` — 프로덕션 주소에 영향을 주지 않는다.
-
-CI 나 비대화형 환경에서는 `wrangler login` 대신 API 토큰을 쓴다.
-Cloudflare 대시보드에서 **Cloudflare Pages: Edit** 권한 토큰을 만들어:
-
-```bash
-export CLOUDFLARE_API_TOKEN=...
-npm run deploy
-```
-
-설정은 `web/wrangler.toml` 에 있다 — 프로젝트명 `colding-poe`, 출력 `dist`.
-
-### 자동 배포
-
-`.github/workflows/deploy.yml` 이 빌드해서 올린다.
+Cloudflare Pages 로 나간다. 절차와 함정은 **[DEPLOY.md](DEPLOY.md)** 에 정리해 뒀다.
 
 | 푸시한 브랜치 | 배포 |
 |---|---|
-| `release/**` | 프로덕션 (colding.xyz) |
+| `release/**` | 프로덕션 — colding.xyz |
 | `main` | 미리보기 |
 
-릴리스는 `main` 에서 `release/vX.Y.Z` 를 잘라 푸시한다.
-
 ```bash
-git checkout -b release/v0.0.2 main
-git push -u origin release/v0.0.2
+# 릴리스
+git checkout -b release/v0.0.2 main && git push -u origin release/v0.0.2
 ```
-
-Cloudflare 의 '프로덕션 브랜치' 설정은 이름 하나만 받고 패턴을 못 쓴다.
-`release/v0.0.1` 을 그대로 넣으면 버전을 올릴 때마다 대시보드를 고쳐야 하므로,
-워크플로가 배포 시 넘기는 이름을 `release` 로 고정한다. 그래서 Cloudflare 쪽
-설정은 **프로덕션 브랜치 = `release`** 한 번이면 끝이다.
-
-저장소 시크릿 두 개가 필요하다.
-
-```bash
-gh secret set CLOUDFLARE_API_TOKEN     # Cloudflare Pages: Edit 권한 토큰
-gh secret set CLOUDFLARE_ACCOUNT_ID    # 대시보드 우측의 Account ID
-```
-
-프로덕션인지 미리보기인지는 워크플로가 아니라 Cloudflare 프로젝트의
-**프로덕션 브랜치** 설정이 정한다. 워크플로는 브랜치 이름만 그대로 넘긴다.
-
-배포 전에 **사전 참조 검증**을 돌린다. 페이지가 가리키는 `dict-*.json.gz` 가 실제로
-출력에 있는지 확인하는 단계다. 사전을 다시 만들고 커밋하지 않으면 해시가 어긋나
-도구가 죽는데, 빌드 자체는 성공하므로 이 단계가 없으면 배포된 뒤에야 드러난다.
 
 ## 다시 빌드하기
 
@@ -172,6 +129,9 @@ cd web && npm run build
 다른 위치에 두었으면 `KO2EN_DATA` 환경변수나 `--data` 로 넘기면 됩니다.
 CSV 를 하나도 못 찾으면 빌드가 멈춥니다 — 예전에는 조용히 빈 사전을 만들어
 결과물을 망가뜨렸습니다.
+
+사전 파일명이 바뀌므로 **생성 결과를 반드시 커밋해야 합니다.** 배포 환경에는
+원본 CSV 가 없어 다시 만들 수 없습니다. 자세한 내용은 [DEPLOY.md](DEPLOY.md).
 
 명령줄에서 바로 쓰고 싶다면:
 
