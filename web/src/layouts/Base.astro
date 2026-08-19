@@ -44,6 +44,9 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
       <script type="application/ld+json" set:html={JSON.stringify(jsonld)} />
     )}
     {SITE.adsenseClient && (
+      <meta name="google-adsense-account" content={SITE.adsenseClient} />
+    )}
+    {SITE.adsenseClient && (
       <script
         async
         src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${SITE.adsenseClient}`}

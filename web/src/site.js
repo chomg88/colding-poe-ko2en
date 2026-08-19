@@ -3,8 +3,12 @@ export const SITE = {
   name: "POE 툴박스",
   tagline: "Path of Exile 한국 유저를 위한 도구 모음",
   origin: "https://colding.xyz",
-  // 애드센스 승인 후 ca-pub-... 을 넣으면 광고 슬롯이 켜진다. 비어 있으면 꺼진다.
+  // 애드센스. 신청 단계에서 발급받는 ca-pub-... 을 넣는다.
+  // 이 값만 넣으면 로더 스크립트와 사이트 확인 메타 태그가 켜지고 (심사에 필요),
+  // 광고 자체는 AdSlot 에 슬롯 ID 를 채우기 전까지 나가지 않는다. 비어 있으면 전부 꺼진다.
   adsenseClient: "",
+  // 문의용 메일. 비어 있으면 소개 페이지에 GitHub 이슈만 안내한다.
+  contactEmail: "",
   // 검색엔진 소유확인 메타 태그. 비어 있는 항목은 렌더링하지 않는다.
   // 공개돼도 되는 값이다 — HTML 에 박히는 것이 목적이다.
   verification: {

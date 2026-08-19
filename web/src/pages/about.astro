@@ -1,0 +1,54 @@
+---
+import Base from "../layouts/Base.astro";
+import { SITE } from "../site.js";
+const title = "사이트 소개";
+const description = "POE 툴박스가 무엇이고 누가 만드는지, 문의는 어디로 하는지 안내합니다.";
+---
+<Base title={title} description={description}>
+  <article class="prose">
+    <h1>사이트 소개</h1>
+
+    <p>
+      {SITE.name}는 Path of Exile 한국 유저를 위한 웹 도구 모음입니다.
+      게임을 한글 클라이언트로 하면서 영문 기준으로 만들어진 외부 도구를 쓸 때
+      생기는 불편을 줄이는 것이 목적입니다.
+    </p>
+
+    <h2>지금 있는 도구</h2>
+
+    <p>
+      <strong>아이템 변환기</strong> — 한글 클라이언트에서 <code>Ctrl+C</code> 로 복사한
+      아이템 텍스트를 영문 Path of Building 이 읽는 형태로 되돌립니다. 한글 POB 가 화면을
+      번역할 때 쓰는 <code>EN,KO</code> 두 열짜리 사전을 뒤집어 쓰는 방식이라, 사람이 손으로
+      옮겨 적을 때 생기는 오타나 누락이 없습니다. 거래소 복사본과 게임 클라이언트 복사본을
+      모두 받고, 고급 아이템 정보로 딸려오는 값 범위·접사 이름·태그도 같이 옮깁니다.
+    </p>
+
+    <h2>어떻게 동작하나</h2>
+
+    <p>
+      변환은 전부 브라우저 안에서 끝납니다. 사전은 정적 파일로 내려받아 브라우저 메모리에서만
+      쓰이고, 입력하신 아이템 텍스트는 서버로 전송되지 않습니다. 자세한 내용은 <a href="/privacy/">개인정보처리방침</a>에 적어 두었습니다.
+    </p>
+
+    <h2>만든 사람</h2>
+
+    <p>
+      개인이 취미로 만들어 운영합니다. 소스 코드는 <a href="https://github.com/chomg88/colding-poe-ko2en" rel="noopener">GitHub 저장소</a>에
+      공개돼 있습니다. Path of Exile 은 Grinding Gear Games 의 상표이며, 이 사이트는 GGG 와
+      아무 관계가 없는 비공식 팬 사이트입니다.
+    </p>
+
+    <h2>문의</h2>
+
+    <p>
+      버그 제보, 사전에서 빠진 항목, 새 도구 제안은 <a href="https://github.com/chomg88/colding-poe-ko2en/issues" rel="noopener">GitHub 이슈</a>로
+      남겨주세요.
+      {SITE.contactEmail && (
+        <>
+          {" "}메일로 연락하셔도 됩니다 — <a href={`mailto:${SITE.contactEmail}`}>{SITE.contactEmail}</a>.
+        </>
+      )}
+    </p>
+  </article>
+</Base>
