@@ -13,6 +13,7 @@ export const SITE = {
   // 공개돼도 되는 값이다 — HTML 에 박히는 것이 목적이다.
   verification: {
     naver: "279e9b466ae6b858d67b15b9ffe85f1a5500be45",
+    // colding.xyz 는 DNS TXT 레코드로 확인돼 있다. 메타 태그는 필요 없다.
     google: "",
   },
 };
