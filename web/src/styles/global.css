@@ -110,7 +110,37 @@ main{flex:1; width:100%}
 .prose h2{margin:var(--sp-6) 0 var(--sp-3)}
 .prose h3{margin:var(--sp-5) 0 var(--sp-2)}
 .prose li{margin-bottom:6px; color:var(--ink-2)}
-.prose strong{color:var(--ink)}
+.prose strong{color:var(--ink); font-weight:640}
+.prose em{color:var(--ink-2)}
+.prose > p:first-of-type{font-size:var(--t-lg); color:var(--ink-2); line-height:1.7}
+
+/* 코드 블록. Astro 가 마크다운 ``` 를 pre>code 로 낸다.
+   가로로 긴 표·예시가 들어가므로 본문 폭을 넘어가면 블록 안에서 스크롤한다. */
+.prose pre{
+  margin:0 0 var(--sp-4); padding:14px 16px; overflow-x:auto;
+  background:var(--sunken); border:1px solid var(--line-2); border-radius:var(--r-md);
+  font-size:12.5px; line-height:1.7;
+}
+.prose pre code{
+  background:none; border:0; padding:0; font-size:inherit; color:var(--ink-2);
+  white-space:pre; display:block;
+}
+.prose :not(pre) > code{
+  font-family:var(--f-mono); font-size:.88em; color:var(--accent-hi);
+  background:var(--sunken); border:1px solid var(--line);
+  border-radius:var(--r-sm); padding:1px 5px;
+}
+.prose a{text-decoration:underline; text-underline-offset:2px; text-decoration-color:var(--line-hi)}
+.prose a:hover{text-decoration-color:var(--accent)}
+.prose blockquote{
+  margin:0 0 var(--sp-4); padding:2px 0 2px var(--sp-4);
+  border-left:2px solid var(--line-2); color:var(--muted);
+}
+.prose hr{border:0; border-top:1px solid var(--line); margin:var(--sp-6) 0}
+.prose table{border-collapse:collapse; width:100%; margin:0 0 var(--sp-4); font-size:var(--t-md)}
+.prose th,.prose td{border:1px solid var(--line-2); padding:7px 11px; text-align:left}
+.prose th{background:var(--panel-2); color:var(--ink); font-weight:620}
+.prose td{color:var(--ink-2)}
 
 /* ── 광고 슬롯 ── */
 .ad{margin:var(--sp-6) auto; text-align:center}

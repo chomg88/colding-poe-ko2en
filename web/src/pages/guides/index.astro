@@ -1,12 +1,51 @@
 ---
 import Base from "../../layouts/Base.astro";
+import AdSlot from "../../components/AdSlot.astro";
+import { getCollection } from "astro:content";
+
+const posts = (await getCollection("guides", ({ data }) => !data.draft))
+  .sort((a, b) => b.data.published - a.data.published);
+const fmt = (d) =>
+  `${d.getFullYear()}. ${String(d.getMonth() + 1).padStart(2, "0")}. ${String(d.getDate()).padStart(2, "0")}`;
 ---
-<Base title="가이드" description="Path of Exile 아이템과 도구 사용법에 대한 글입니다.">
-  <article class="prose">
+<Base title="가이드" description="Path of Exile 한글 클라이언트와 도구 사용에 대한 글입니다.">
+  <section class="lede">
     <h1>가이드</h1>
-    <p>
-      아이템 옵션 읽는 법, 도구 사용법 등을 정리해 올릴 예정입니다.
-      글은 <code>src/content/guides/</code> 에 마크다운으로 추가하면 이 목록에 나타납니다.
-    </p>
-  </article>
+    <p>한글 클라이언트를 쓰면서 부딪히는 것들, 그리고 그 이유를 정리합니다.</p>
+  </section>
+
+  <ul class="posts">
+    {posts.map((p) => (
+      <li>
+        <a href={`/guides/${p.id}/`}>
+          <h2>{p.data.title}</h2>
+          <p>{p.data.description}</p>
+          <div class="meta">
+            <time datetime={p.data.published.toISOString()}>{fmt(p.data.published)}</time>
+            {p.data.tags.map((t) => <span>{t}</span>)}
+          </div>
+        </a>
+      </li>
+    ))}
+  </ul>
+
+  {posts.length === 0 && <p class="guide-note">아직 올라온 글이 없습니다.</p>}
+
+  <AdSlot slot="" />
 </Base>
+
+<style>
+  .posts{list-style:none; margin:0; padding:0; display:grid; gap:2px; max-width:74ch}
+  .posts a{
+    display:block; padding:18px 20px; color:inherit; position:relative;
+    background:var(--panel); border:1px solid var(--line-2); border-radius:var(--r-md);
+    transition:border-color .14s ease, background .14s ease;
+  }
+  .posts a:hover{border-color:var(--line-hi); background:var(--panel-2); text-decoration:none}
+  .posts h2{font-size:var(--t-lg); margin:0}
+  .posts p{margin:6px 0 0; color:var(--muted); font-size:var(--t-md); line-height:1.65}
+  .meta{display:flex; gap:10px; align-items:center; margin-top:12px;
+    font-size:var(--t-xs); color:var(--faint)}
+  .meta time{font-variant-numeric:tabular-nums}
+  .meta span{border:1px solid var(--line-2); border-radius:99px; padding:1px 9px; letter-spacing:.04em}
+</style>

@@ -1,0 +1,38 @@
+---
+import Base from "../../layouts/Base.astro";
+import AdSlot from "../../components/AdSlot.astro";
+import { getCollection, render } from "astro:content";
+
+export async function getStaticPaths() {
+  const posts = await getCollection("guides", ({ data }) => !data.draft);
+  return posts.map((p) => ({ params: { id: p.id }, props: { post: p } }));
+}
+
+const { post } = Astro.props;
+const { Content } = await render(post);
+const fmt = (d) => `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일`;
+---
+<Base title={post.data.title} description={post.data.description}>
+  <article class="prose">
+    <header class="post-head">
+      <h1>{post.data.title}</h1>
+      <p class="dek">{post.data.description}</p>
+      <div class="meta">
+        <time datetime={post.data.published.toISOString()}>{fmt(post.data.published)}</time>
+        {post.data.updated && <span>· {fmt(post.data.updated)} 수정</span>}
+        {post.data.tags.map((t) => <span class="tag">{t}</span>)}
+      </div>
+    </header>
+    <Content />
+  </article>
+  <AdSlot slot="" />
+</Base>
+
+<style>
+  .post-head{margin-bottom:var(--sp-6); padding-bottom:var(--sp-5); border-bottom:1px solid var(--line)}
+  .dek{margin:10px 0 0; color:var(--muted); font-size:var(--t-lg); line-height:1.6}
+  .meta{display:flex; gap:8px; align-items:center; margin-top:16px;
+    font-size:var(--t-xs); color:var(--faint)}
+  .meta time{font-variant-numeric:tabular-nums}
+  .tag{border:1px solid var(--line-2); border-radius:99px; padding:1px 9px; letter-spacing:.04em}
+</style>
