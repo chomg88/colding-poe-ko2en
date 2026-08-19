@@ -8,9 +8,9 @@ on:
     branches:
       - main
       - "release/**"
-    paths:
-      - "web/**"
-      - ".github/workflows/deploy.yml"
+    # paths 필터를 쓰지 않는다. main 과 같은 커밋에서 release 브랜치를 자르면
+    # 푸시된 새 커밋이 없어 변경 파일 비교가 성립하지 않고 워크플로가 걸러진다.
+    # 릴리스 브랜치를 자르는 것이 곧 배포 트리거이므로 필터를 두면 안 된다.
   workflow_dispatch:
 
 # 같은 브랜치에 연속으로 푸시하면 앞선 실행을 취소한다
