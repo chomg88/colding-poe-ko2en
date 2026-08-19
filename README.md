@@ -2,7 +2,7 @@
 
 한글 클라이언트에서 복사한 Path of Exile 아이템 텍스트를 **영문 Path of Building 이 읽는 형태로 되돌립니다.**
 
-👉 **https://chomg88.github.io/colding-poe-ko2en/**
+👉 **https://colding.xyz**
 
 게임에서 아이템을 `Ctrl+C` 한 뒤 붙여넣으면 영문이 나옵니다. 그대로 복사해 영문 POB 의 아이템 입력칸에 넣으면 됩니다.
 
