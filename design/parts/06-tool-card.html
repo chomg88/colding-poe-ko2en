@@ -1,0 +1,40 @@
+<!--meta group=Components | name=도구 카드 | subtitle=랜딩 목록 · 준비 중 상태 포함 | w=780 h=320-->
+<style>
+  .tools{list-style:none; margin:0; padding:0; display:grid; gap:14px;
+    grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); max-width:720px}
+  .tools a{
+    display:block; height:100%; padding:20px; color:inherit; text-decoration:none;
+    background:var(--panel); border:1px solid var(--line-2); border-radius:var(--r-md);
+    position:relative; transition:border-color .14s ease, background .14s ease;
+  }
+  /* 위쪽 모서리에 등급색 실선 하나. 게임의 아이템 테두리에서 가져온 신호 */
+  .tools a::before{
+    content:""; position:absolute; inset:-1px -1px auto -1px; height:2px;
+    background:var(--accent); opacity:.65; border-radius:var(--r-md) var(--r-md) 0 0;
+  }
+  .tools a:hover{border-color:var(--line-hi); background:var(--panel-2)}
+  .tools a:hover::before{opacity:1}
+  .tools h2{font-size:17px; font-weight:650; margin:0; color:var(--ink)}
+  .tools p{margin:8px 0 0; font-size:var(--t-md); color:var(--muted); line-height:1.6}
+  .tags{display:flex; gap:6px; margin-top:14px}
+  .tags span{
+    font-size:var(--t-xs); letter-spacing:.04em; color:var(--faint);
+    border:1px solid var(--line-2); border-radius:99px; padding:1px 9px;
+  }
+  .soon{padding:20px; border:1px dashed var(--line-2); border-radius:var(--r-md); color:var(--faint)}
+  .soon h2{font-size:17px; margin:0; color:var(--faint); font-weight:650}
+  .soon p{margin:8px 0 0; font-size:var(--t-md); line-height:1.6}
+</style>
+<ul class="tools">
+  <li>
+    <a href="#">
+      <h2>아이템 역번역기</h2>
+      <p>한글 클라이언트에서 복사한 아이템을 영문 Path of Building 이 읽는 형태로 되돌립니다.</p>
+      <div class="tags"><span>번역</span><span>POB</span></div>
+    </a>
+  </li>
+  <li class="soon">
+    <h2>준비 중</h2>
+    <p>도구를 계속 추가할 예정입니다. 필요한 게 있으면 GitHub 이슈로 알려주세요.</p>
+  </li>
+</ul>

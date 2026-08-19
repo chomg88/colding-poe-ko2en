@@ -1,88 +1,67 @@
-/* 디자인 토큰. PoE 아이템 툴팁의 차가운 검정에서 출발한 슬레이트 중성색에,
-   고유 아이템 글자색(#af6025)에서 끌어온 번트 앰버 액센트. */
-:root{
-  --ground:#eceef2; --panel:#ffffff; --panel-2:#f5f6f9;
-  --ink:#171a20; --ink-2:#3d434e; --muted:#5a6270; --faint:#8b93a1;
-  --line:#d6dae1; --line-soft:#e5e8ed;
-  --accent:#a35d24; --accent-soft:#a35d2418;
-  --s-ok:#4d5ab8; --s-frame:#6b7280; --s-amb:#8a6c0e; --s-miss:#ab452f; --s-base:#2f7d6a;
-  --s-amb-bg:#8a6c0e14; --s-miss-bg:#ab452f12;
-  --focus:#a35d24;
-  --wrap:1120px;
-}
-@media (prefers-color-scheme:dark){
-  :root:not([data-theme="light"]){
-    --ground:#0c0e12; --panel:#14171c; --panel-2:#101318;
-    --ink:#e2e6ec; --ink-2:#b9c0cb; --muted:#868f9e; --faint:#666e7c;
-    --line:#252a32; --line-soft:#1c2027;
-    --accent:#d68b4c; --accent-soft:#d68b4c1a;
-    --s-ok:#8b96e8; --s-frame:#7b8494; --s-amb:#d3ab3e; --s-miss:#e08067; --s-base:#4fae95;
-    --s-amb-bg:#d3ab3e14; --s-miss-bg:#e0806714;
-    --focus:#d68b4c;
-  }
-}
-:root[data-theme="dark"]{
-  --ground:#0c0e12; --panel:#14171c; --panel-2:#101318;
-  --ink:#e2e6ec; --ink-2:#b9c0cb; --muted:#868f9e; --faint:#666e7c;
-  --line:#252a32; --line-soft:#1c2027;
-  --accent:#d68b4c; --accent-soft:#d68b4c1a;
-  --s-ok:#8b96e8; --s-frame:#7b8494; --s-amb:#d3ab3e; --s-miss:#e08067; --s-base:#4fae95;
-  --s-amb-bg:#d3ab3e14; --s-miss-bg:#e0806714;
-  --focus:#d68b4c;
-}
+/* 토큰은 tokens.css (design/tokens.css 에서 생성). 여기는 그 위에 얹는
+   기본 타이포그래피와 사이트 크롬이다.
+   다크 단일 테마 — Path of Exile 의 화면은 어두운 것이 전제다. */
 
 *{box-sizing:border-box}
-html{ -webkit-text-size-adjust:100% }
+html{-webkit-text-size-adjust:100%; color-scheme:dark}
 body{
-  margin:0; min-height:100dvh; background:var(--ground); color:var(--ink);
-  font-family:"Pretendard","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",
-              -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
-  font-size:15px; line-height:1.65; -webkit-font-smoothing:antialiased;
-  display:flex; flex-direction:column;
+  margin:0; min-height:100dvh; background:var(--bg); color:var(--ink);
+  font-family:var(--f-body); font-size:var(--t-base); line-height:1.65;
+  -webkit-font-smoothing:antialiased; display:flex; flex-direction:column;
 }
-.mono{font-family:ui-monospace,"SF Mono","JetBrains Mono",Menlo,Consolas,monospace}
-.lbl{font-size:11px; letter-spacing:.09em; text-transform:uppercase; color:var(--faint); font-weight:600}
+.mono{font-family:var(--f-mono)}
+.lbl{font-size:var(--t-xs); letter-spacing:.09em; text-transform:uppercase;
+     color:var(--faint); font-weight:700}
 .wrap{width:100%; max-width:var(--wrap); margin-inline:auto; padding-inline:20px}
 
-a{color:var(--accent); text-decoration:none}
+a{color:var(--accent-hi); text-decoration:none}
 a:hover{text-decoration:underline}
-:focus-visible{outline:2px solid var(--focus); outline-offset:2px}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
 
-h1,h2,h3{margin:0; line-height:1.3; text-wrap:balance; letter-spacing:-.015em}
-h1{font-size:26px; font-weight:680}
-h2{font-size:19px; font-weight:650}
-h3{font-size:16px; font-weight:650}
+h1,h2,h3{margin:0; line-height:1.3; text-wrap:balance; letter-spacing:-.015em; color:var(--ink)}
+h1{font-size:var(--t-2xl); font-weight:660}
+h2{font-size:var(--t-xl); font-weight:650}
+h3{font-size:var(--t-lg); font-weight:650}
+code{font-family:var(--f-mono); font-size:.88em; color:var(--ink-2);
+  background:var(--sunken); border:1px solid var(--line); border-radius:var(--r-sm); padding:1px 5px}
 
 /* ── 사이트 크롬 ── */
 .site-head{
   position:sticky; top:0; z-index:20; background:var(--panel-2);
-  border-bottom:1px solid var(--line); backdrop-filter:saturate(1.2) blur(6px);
+  border-bottom:1px solid var(--line-2);
 }
 .site-head .wrap{display:flex; align-items:center; gap:22px; height:52px}
-.brand{display:flex; align-items:baseline; gap:8px; font-weight:680; color:var(--ink); font-size:15px}
-.brand:hover{text-decoration:none}
-.brand .dot{width:6px; height:6px; border-radius:50%; background:var(--accent); align-self:center}
-.site-nav{margin-left:auto; display:flex; gap:18px; font-size:14px}
-.site-nav a{color:var(--muted); font-weight:550}
+.brand{display:flex; align-items:center; gap:8px; font-weight:680;
+       color:var(--ink); font-size:var(--t-base)}
+.brand:hover{text-decoration:none; color:var(--ink)}
+/* 마름모 하나. 게임 UI 의 각진 느낌을 아주 작게만 빌려온다 */
+.brand .mk{width:7px; height:7px; background:var(--accent); transform:rotate(45deg); flex:none}
+.site-nav{margin-left:auto; display:flex; gap:18px; font-size:var(--t-md)}
+.site-nav a{color:var(--muted); font-weight:550; position:relative}
+.site-nav a:hover{color:var(--ink-2); text-decoration:none}
 .site-nav a[aria-current="page"]{color:var(--ink)}
+.site-nav a[aria-current="page"]::after{
+  content:""; position:absolute; left:0; right:0; bottom:-17px; height:2px; background:var(--accent);
+}
 
 main{flex:1; width:100%}
 .site-foot{
   border-top:1px solid var(--line); background:var(--panel-2);
-  margin-top:56px; padding-block:22px; font-size:13px; color:var(--faint);
+  margin-top:var(--sp-7); padding-block:var(--sp-5);
+  font-size:var(--t-sm); color:var(--faint);
 }
 .site-foot .wrap{display:flex; gap:18px; flex-wrap:wrap; align-items:center}
 .site-foot nav{margin-left:auto; display:flex; gap:16px}
+.site-foot a{color:var(--muted)}
 
 /* ── 본문 페이지 ── */
-.prose{max-width:66ch; padding-block:40px}
-.prose p,.prose ul,.prose ol{margin:0 0 16px}
-.prose h2{margin:32px 0 12px}
-.prose h3{margin:24px 0 8px}
-.prose li{margin-bottom:6px}
-.prose code{font-family:ui-monospace,Menlo,monospace; font-size:.88em;
-  background:var(--panel-2); border:1px solid var(--line-soft); border-radius:4px; padding:1px 5px}
+.prose{max-width:66ch; padding-block:var(--sp-6)}
+.prose p,.prose ul,.prose ol{margin:0 0 var(--sp-4); color:var(--ink-2)}
+.prose h1{margin-bottom:var(--sp-4)}
+.prose h2{margin:var(--sp-6) 0 var(--sp-3)}
+.prose h3{margin:var(--sp-5) 0 var(--sp-2)}
+.prose li{margin-bottom:6px; color:var(--ink-2)}
+.prose strong{color:var(--ink)}
 
 /* ── 광고 슬롯 ── */
-.ad{margin:32px auto; text-align:center; min-height:0}
-.ad[data-empty]{display:none}
+.ad{margin:var(--sp-6) auto; text-align:center}

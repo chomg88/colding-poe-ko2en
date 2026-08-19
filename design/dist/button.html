@@ -1,0 +1,125 @@
+<!-- @dsCard group="Components" -->
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8">
+<title>버튼</title>
+<style>
+/* ─────────────────────────────────────────────────────────────
+   POE 툴박스 — 디자인 토큰
+   단일 출처. design/build.py 가 미리보기와 web/src/styles/tokens.css
+   양쪽으로 내보낸다. 여기만 고치면 둘 다 따라온다.
+
+   다크 단일 테마. Path of Exile 의 화면은 어두운 것이 전제라
+   밝은 테마를 같이 끌고 가면 분위기가 사라진다.
+   ───────────────────────────────────────────────────────────── */
+:root{
+  /* 바탕 — 그을음과 쇠. 순수 회색이 아니라 따뜻한 쪽으로 치우쳐 있다 */
+  --bg:#0b0a09;
+  --panel:#14120f;
+  --panel-2:#1b1815;
+  --sunken:#080706;
+
+  /* 테두리 — PoE UI 는 각지고 얇다 */
+  --line:#2c2721;
+  --line-2:#3d362d;
+  --line-hi:#4a4034;
+
+  /* 글자 — 양피지 */
+  --ink:#cfc7b8;
+  --ink-2:#a29a8c;
+  --muted:#7d7568;
+  --faint:#5c554b;
+
+  /* 액센트 — 고유 아이템 글자색 */
+  --accent:#af6025;
+  --accent-hi:#d07c3a;
+  --accent-soft:rgba(175,96,37,.14);
+
+  /* 등급색. 게임이 쓰는 값 그대로다. 의미색을 여기서 파생시켜
+     시스템 전체가 한 팔레트 위에 서게 한다 */
+  --r-normal:#c8c8c8;
+  --r-magic:#8888ff;
+  --r-rare:#ffff77;
+  --r-unique:#af6025;
+  --r-gem:#1ba29b;
+  --r-currency:#aa9e82;
+  --r-divination:#14b7ff;
+  --r-corrupt:#d20000;
+
+  /* 의미색 — 등급색에서 끌어온다 */
+  --st-ok:#8888ff;        /* 마법 파랑 = 옵션 매칭. 게임의 속성 글자색과 같다 */
+  --st-warn:#ffff77;      /* 희귀 노랑 = 후보 여럿 */
+  --st-info:#1ba29b;      /* 젬 청록 = 베이스타입 복원 */
+  --st-bad:#e0563f;       /* 타락 적색을 화면용으로 누그러뜨림 */
+  --st-mute:#7d7568;
+
+  /* 서체 — 한글이 깨지지 않는 것이 우선이다.
+     라틴 전용 세리프는 영문 아이템명·라벨에만 쓴다 */
+  --f-display:"Iowan Old Style",Georgia,Palatino,"Times New Roman",serif;
+  --f-body:"Pretendard","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",
+           -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --f-mono:ui-monospace,"SF Mono","JetBrains Mono",Menlo,Consolas,monospace;
+
+  /* 크기 */
+  --t-xs:11px; --t-sm:12.5px; --t-md:14px; --t-base:15px;
+  --t-lg:17px; --t-xl:20px; --t-2xl:26px; --t-3xl:34px;
+
+  --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px;
+  --sp-5:24px; --sp-6:32px; --sp-7:48px; --sp-8:64px;
+
+  --r-sm:2px; --r-md:4px; --r-lg:6px;
+
+  --wrap:1120px;
+}
+
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  background:var(--bg); color:var(--ink);
+  font-family:var(--f-body); font-size:var(--t-base); line-height:1.65;
+  -webkit-font-smoothing:antialiased; padding:24px;
+}
+</style>
+</head><body>
+<style>
+  .rows{display:grid; gap:var(--sp-5)}
+  .row{display:flex; gap:var(--sp-2); align-items:center; flex-wrap:wrap}
+  h3{font-size:var(--t-xs); letter-spacing:.1em; text-transform:uppercase;
+     color:var(--faint); margin:0 0 var(--sp-3); font-weight:700}
+  .btn{
+    font-family:var(--f-body); font-size:var(--t-sm); font-weight:550;
+    color:var(--ink-2); background:var(--panel-2);
+    border:1px solid var(--line-2); border-radius:var(--r-sm);
+    padding:5px 13px; cursor:pointer; letter-spacing:.01em;
+    transition:border-color .12s ease, color .12s ease;
+  }
+  .btn:hover{border-color:var(--accent); color:var(--accent-hi)}
+  .btn.primary{
+    background:var(--accent-soft); border-color:var(--accent); color:var(--accent-hi);
+  }
+  .btn.primary:hover{background:rgba(175,96,37,.22)}
+  .btn.danger{border-color:#5c2a22; color:var(--st-bad)}
+  .btn.danger:hover{border-color:var(--st-bad)}
+  .btn.lg{font-size:var(--t-md); padding:8px 18px}
+  .btn:disabled{opacity:.4; cursor:not-allowed; border-color:var(--line); color:var(--faint)}
+  .btn:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+</style>
+<div class="rows">
+  <section>
+    <h3>기본 크기</h3>
+    <div class="row">
+      <button class="btn primary">복사</button>
+      <button class="btn">예시</button>
+      <button class="btn">비우기</button>
+      <button class="btn danger">초기화</button>
+      <button class="btn" disabled>사전 로딩 중</button>
+    </div>
+  </section>
+  <section>
+    <h3>큰 크기 — 랜딩 · 주요 동작</h3>
+    <div class="row">
+      <button class="btn primary lg">도구 열기</button>
+      <button class="btn lg">사용법 보기</button>
+    </div>
+  </section>
+</div>
+</body></html>

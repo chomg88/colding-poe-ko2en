@@ -1,0 +1,52 @@
+<!--meta group=Components | name=결과 줄 상태 | subtitle=좌측 레일로 매칭 결과를 인코딩 | w=760 h=440-->
+<style>
+  .out{background:var(--sunken); border:1px solid var(--line-2); padding:10px 0; max-width:560px}
+  .ln{
+    display:flex; align-items:baseline; gap:10px; padding:1px 14px 1px 0;
+    border-left:2px solid transparent; font-family:var(--f-mono);
+    font-size:12.5px; line-height:1.7; color:var(--ink);
+  }
+  .ln > .txt{padding-left:14px}
+  .ln.ok{border-left-color:var(--st-ok)}
+  .ln.frame{border-left-color:var(--st-mute); color:var(--ink-2)}
+  .ln.base,.ln.part{border-left-color:var(--st-info)}
+  .ln.amb{border-left-color:var(--st-warn); background:rgba(255,255,119,.06)}
+  .ln.miss{border-left-color:var(--st-bad); background:rgba(224,86,63,.07); color:var(--st-bad)}
+  .ln.sep{padding:0; margin:8px 0 8px 14px; border-left:0}
+  .ln.sep .txt{padding:0; width:100%; border-top:1px solid var(--line); height:0; font-size:0}
+  .tag{
+    font-size:10px; letter-spacing:.06em; text-transform:uppercase; font-weight:700;
+    padding:0 5px; border-radius:var(--r-sm); flex:none; align-self:center; white-space:nowrap;
+  }
+  .amb .tag{color:var(--st-warn); border:1px solid var(--st-warn)}
+  .miss .tag{color:var(--st-bad); border:1px solid var(--st-bad)}
+  .base .tag,.part .tag{color:var(--st-info); border:1px solid var(--st-info)}
+  .legend{display:flex; gap:16px; flex-wrap:wrap; margin-top:14px; font-size:var(--t-xs); color:var(--faint)}
+  .legend span{display:inline-flex; align-items:center; gap:6px}
+  .legend i{width:9px; height:2px; border-radius:1px; display:block}
+  .note{font-size:var(--t-sm); color:var(--muted); margin:0 0 var(--sp-3); max-width:62ch; line-height:1.6}
+</style>
+<p class="note">
+  같은 한글이 여러 영문에 대응하는 경우가 실제로 있다. 그 사실을 감추지 않고
+  줄마다 좌측 2px 레일로 상태를 드러낸다. 색은 등급색에서 파생돼 있어
+  게임을 아는 사용자에게는 설명이 필요 없다.
+</p>
+<div class="out">
+  <div class="ln frame"><span class="txt">Item Class: Shields</span></div>
+  <div class="ln frame"><span class="txt">Rarity: Rare</span></div>
+  <div class="ln ok"><span class="txt">Ebony Tower Shield</span></div>
+  <div class="ln sep"><span class="txt"></span></div>
+  <div class="ln ok"><span class="txt">+23 to maximum Life</span></div>
+  <div class="ln amb"><span class="txt">+130 to Armour</span><span class="tag">2안</span></div>
+  <div class="ln ok"><span class="txt">49% increased Armour</span></div>
+  <div class="ln base"><span class="txt">Amethyst Flask</span><span class="tag">베이스만</span></div>
+  <div class="ln part"><span class="txt">While a Unique Enemy is in your Presence, 20% increased Spell Damage</span><span class="tag">이어붙임</span></div>
+  <div class="ln miss"><span class="txt">알 수 없는 옵션 줄</span><span class="tag">없음</span></div>
+</div>
+<div class="legend">
+  <span><i style="background:var(--st-ok)"></i>옵션 매칭</span>
+  <span><i style="background:var(--st-mute)"></i>구조 · 속성</span>
+  <span><i style="background:var(--st-info)"></i>부분 복원</span>
+  <span><i style="background:var(--st-warn)"></i>후보 여럿</span>
+  <span><i style="background:var(--st-bad)"></i>사전에 없음</span>
+</div>

@@ -1,0 +1,43 @@
+<!--meta group=Components | name=버튼 | subtitle=기본 · 보조 · 위험 · 비활성, 2가지 크기 | w=720 h=340-->
+<style>
+  .rows{display:grid; gap:var(--sp-5)}
+  .row{display:flex; gap:var(--sp-2); align-items:center; flex-wrap:wrap}
+  h3{font-size:var(--t-xs); letter-spacing:.1em; text-transform:uppercase;
+     color:var(--faint); margin:0 0 var(--sp-3); font-weight:700}
+  .btn{
+    font-family:var(--f-body); font-size:var(--t-sm); font-weight:550;
+    color:var(--ink-2); background:var(--panel-2);
+    border:1px solid var(--line-2); border-radius:var(--r-sm);
+    padding:5px 13px; cursor:pointer; letter-spacing:.01em;
+    transition:border-color .12s ease, color .12s ease;
+  }
+  .btn:hover{border-color:var(--accent); color:var(--accent-hi)}
+  .btn.primary{
+    background:var(--accent-soft); border-color:var(--accent); color:var(--accent-hi);
+  }
+  .btn.primary:hover{background:rgba(175,96,37,.22)}
+  .btn.danger{border-color:#5c2a22; color:var(--st-bad)}
+  .btn.danger:hover{border-color:var(--st-bad)}
+  .btn.lg{font-size:var(--t-md); padding:8px 18px}
+  .btn:disabled{opacity:.4; cursor:not-allowed; border-color:var(--line); color:var(--faint)}
+  .btn:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+</style>
+<div class="rows">
+  <section>
+    <h3>기본 크기</h3>
+    <div class="row">
+      <button class="btn primary">복사</button>
+      <button class="btn">예시</button>
+      <button class="btn">비우기</button>
+      <button class="btn danger">초기화</button>
+      <button class="btn" disabled>사전 로딩 중</button>
+    </div>
+  </section>
+  <section>
+    <h3>큰 크기 — 랜딩 · 주요 동작</h3>
+    <div class="row">
+      <button class="btn primary lg">도구 열기</button>
+      <button class="btn lg">사용법 보기</button>
+    </div>
+  </section>
+</div>

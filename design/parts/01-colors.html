@@ -1,0 +1,61 @@
+<!--meta group=Foundations | name=색 팔레트 | subtitle=바탕·글자·등급색·의미색 | w=760 h=560-->
+<style>
+  .grid{display:grid; gap:var(--sp-5)}
+  .row{display:flex; flex-wrap:wrap; gap:var(--sp-2)}
+  .sw{width:118px}
+  .chip{height:52px; border:1px solid var(--line-2); border-radius:var(--r-sm)}
+  .nm{font-size:var(--t-xs); color:var(--ink-2); margin-top:6px; letter-spacing:.02em}
+  .hex{font-family:var(--f-mono); font-size:10px; color:var(--faint)}
+  h3{font-size:var(--t-xs); letter-spacing:.1em; text-transform:uppercase;
+     color:var(--faint); margin:0 0 var(--sp-3); font-weight:700}
+  .note{font-size:var(--t-sm); color:var(--muted); margin:0 0 var(--sp-2); max-width:60ch}
+</style>
+<div class="grid">
+  <section>
+    <h3>바탕과 선</h3>
+    <div class="row">
+      <div class="sw"><div class="chip" style="background:var(--bg)"></div><div class="nm">bg</div><div class="hex">#0b0a09</div></div>
+      <div class="sw"><div class="chip" style="background:var(--panel)"></div><div class="nm">panel</div><div class="hex">#14120f</div></div>
+      <div class="sw"><div class="chip" style="background:var(--panel-2)"></div><div class="nm">panel-2</div><div class="hex">#1b1815</div></div>
+      <div class="sw"><div class="chip" style="background:var(--sunken)"></div><div class="nm">sunken</div><div class="hex">#080706</div></div>
+      <div class="sw"><div class="chip" style="background:var(--line)"></div><div class="nm">line</div><div class="hex">#2c2721</div></div>
+      <div class="sw"><div class="chip" style="background:var(--line-2)"></div><div class="nm">line-2</div><div class="hex">#3d362d</div></div>
+    </div>
+  </section>
+  <section>
+    <h3>글자</h3>
+    <div class="row">
+      <div class="sw"><div class="chip" style="background:var(--ink)"></div><div class="nm">ink</div><div class="hex">#cfc7b8</div></div>
+      <div class="sw"><div class="chip" style="background:var(--ink-2)"></div><div class="nm">ink-2</div><div class="hex">#a29a8c</div></div>
+      <div class="sw"><div class="chip" style="background:var(--muted)"></div><div class="nm">muted</div><div class="hex">#7d7568</div></div>
+      <div class="sw"><div class="chip" style="background:var(--faint)"></div><div class="nm">faint</div><div class="hex">#5c554b</div></div>
+      <div class="sw"><div class="chip" style="background:var(--accent)"></div><div class="nm">accent</div><div class="hex">#af6025</div></div>
+      <div class="sw"><div class="chip" style="background:var(--accent-hi)"></div><div class="nm">accent-hi</div><div class="hex">#d07c3a</div></div>
+    </div>
+  </section>
+  <section>
+    <h3>등급색</h3>
+    <p class="note">게임이 쓰는 값을 그대로 가져왔다. 사용자가 이미 아는 색이라
+      학습이 필요 없고, 의미색을 여기서 파생시키면 시스템 전체가 한 팔레트 위에 선다.</p>
+    <div class="row">
+      <div class="sw"><div class="chip" style="background:var(--r-normal)"></div><div class="nm">일반</div><div class="hex">#c8c8c8</div></div>
+      <div class="sw"><div class="chip" style="background:var(--r-magic)"></div><div class="nm">마법</div><div class="hex">#8888ff</div></div>
+      <div class="sw"><div class="chip" style="background:var(--r-rare)"></div><div class="nm">희귀</div><div class="hex">#ffff77</div></div>
+      <div class="sw"><div class="chip" style="background:var(--r-unique)"></div><div class="nm">고유</div><div class="hex">#af6025</div></div>
+      <div class="sw"><div class="chip" style="background:var(--r-gem)"></div><div class="nm">젬</div><div class="hex">#1ba29b</div></div>
+      <div class="sw"><div class="chip" style="background:var(--r-currency)"></div><div class="nm">화폐</div><div class="hex">#aa9e82</div></div>
+      <div class="sw"><div class="chip" style="background:var(--r-divination)"></div><div class="nm">점술 카드</div><div class="hex">#14b7ff</div></div>
+      <div class="sw"><div class="chip" style="background:var(--r-corrupt)"></div><div class="nm">타락</div><div class="hex">#d20000</div></div>
+    </div>
+  </section>
+  <section>
+    <h3>의미색 — 번역 결과 줄 상태</h3>
+    <div class="row">
+      <div class="sw"><div class="chip" style="background:var(--st-ok)"></div><div class="nm">매칭</div><div class="hex">마법 파랑</div></div>
+      <div class="sw"><div class="chip" style="background:var(--st-warn)"></div><div class="nm">후보 여럿</div><div class="hex">희귀 노랑</div></div>
+      <div class="sw"><div class="chip" style="background:var(--st-info)"></div><div class="nm">베이스만</div><div class="hex">젬 청록</div></div>
+      <div class="sw"><div class="chip" style="background:var(--st-bad)"></div><div class="nm">미매칭</div><div class="hex">#e0563f</div></div>
+      <div class="sw"><div class="chip" style="background:var(--st-mute)"></div><div class="nm">구조</div><div class="hex">#7d7568</div></div>
+    </div>
+  </section>
+</div>

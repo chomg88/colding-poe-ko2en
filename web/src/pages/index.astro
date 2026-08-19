@@ -33,29 +33,35 @@ import { SITE, TOOLS } from "../site.js";
 </Base>
 
 <style>
-  .hero{padding-block:56px 36px; max-width:60ch}
-  .hero h1{font-size:32px}
-  .hero p{margin:14px 0 0; color:var(--muted)}
+  .hero{padding-block:var(--sp-7) var(--sp-6); max-width:60ch}
+  .hero h1{font-size:var(--t-3xl); font-weight:680; letter-spacing:-.02em}
+  .hero p{margin:14px 0 0; color:var(--muted); line-height:1.75}
 
   .tools{list-style:none; margin:0; padding:0; display:grid; gap:14px;
     grid-template-columns:repeat(auto-fill, minmax(300px, 1fr))}
   .tools li{margin:0}
   .tools a{
-    display:block; height:100%; padding:20px; color:inherit;
-    background:var(--panel); border:1px solid var(--line); border-radius:8px;
-    transition:border-color .12s ease;
+    display:block; height:100%; padding:20px; color:inherit; position:relative;
+    background:var(--panel); border:1px solid var(--line-2); border-radius:var(--r-md);
+    transition:border-color .14s ease, background .14s ease;
   }
-  .tools a:hover{border-color:var(--accent); text-decoration:none}
-  .tools h2{font-size:17px}
-  .tools p{margin:8px 0 0; font-size:14px; color:var(--muted)}
+  /* 위쪽 모서리에 액센트 실선. 게임의 아이템 테두리에서 가져온 신호 */
+  .tools a::before{
+    content:""; position:absolute; inset:-1px -1px auto -1px; height:2px;
+    background:var(--accent); opacity:.65; border-radius:var(--r-md) var(--r-md) 0 0;
+  }
+  .tools a:hover{border-color:var(--line-hi); background:var(--panel-2); text-decoration:none}
+  .tools a:hover::before{opacity:1}
+  .tools h2{font-size:var(--t-lg)}
+  .tools p{margin:8px 0 0; font-size:var(--t-md); color:var(--muted); line-height:1.6}
   .tags{display:flex; gap:6px; margin-top:14px}
   .tags span{
-    font-size:11px; letter-spacing:.04em; color:var(--faint);
-    border:1px solid var(--line); border-radius:99px; padding:1px 9px;
+    font-size:var(--t-xs); letter-spacing:.04em; color:var(--faint);
+    border:1px solid var(--line-2); border-radius:99px; padding:1px 9px;
   }
   .soon{
-    padding:20px; border:1px dashed var(--line); border-radius:8px; color:var(--faint);
+    padding:20px; border:1px dashed var(--line-2); border-radius:var(--r-md); color:var(--faint);
   }
-  .soon h2{font-size:17px; color:var(--faint)}
-  .soon p{margin:8px 0 0; font-size:14px}
+  .soon h2{font-size:var(--t-lg); color:var(--faint)}
+  .soon p{margin:8px 0 0; font-size:var(--t-md); line-height:1.6}
 </style>

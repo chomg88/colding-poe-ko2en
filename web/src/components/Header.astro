@@ -5,7 +5,7 @@ const on = (p) => (path === p || (p !== "/" && path.startsWith(p)) ? "page" : un
 ---
 <header class="site-head">
   <div class="wrap">
-    <a class="brand" href="/"><span class="dot"></span>{SITE.name}</a>
+    <a class="brand" href="/"><span class="mk"></span>{SITE.name}</a>
     <nav class="site-nav">
       <a href="/" aria-current={path === "/" ? "page" : undefined}>도구</a>
       <a href="/guides/" aria-current={on("/guides")}>가이드</a>

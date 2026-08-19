@@ -1,0 +1,37 @@
+<!--meta group=Components | name=사이트 크롬 | subtitle=헤더·푸터·본문 폭 | w=860 h=380-->
+<style>
+  .frame{border:1px solid var(--line-2); border-radius:var(--r-md); overflow:hidden; background:var(--bg); max-width:800px}
+  .head{display:flex; align-items:center; gap:22px; height:52px; padding:0 20px;
+    background:var(--panel-2); border-bottom:1px solid var(--line-2)}
+  .brand{display:flex; align-items:center; gap:8px; font-weight:680; font-size:var(--t-base); color:var(--ink)}
+  /* 마름모 하나. 게임 UI 의 각진 느낌을 아주 작게만 빌려온다 */
+  .brand .mk{width:7px; height:7px; background:var(--accent); transform:rotate(45deg)}
+  .nav{margin-left:auto; display:flex; gap:18px; font-size:var(--t-md)}
+  .nav a{color:var(--muted); text-decoration:none; font-weight:550}
+  .nav a[aria-current]{color:var(--ink)}
+  .nav a[aria-current]{position:relative}
+  .nav a[aria-current]::after{content:""; position:absolute; left:0; right:0; bottom:-17px;
+    height:2px; background:var(--accent)}
+  .body{padding:26px 20px; min-height:150px}
+  .body h1{font-size:26px; margin:0 0 10px; font-weight:660; color:var(--ink)}
+  .body p{margin:0; color:var(--muted); font-size:var(--t-md); max-width:58ch; line-height:1.7}
+  .foot{display:flex; gap:18px; align-items:center; padding:18px 20px;
+    border-top:1px solid var(--line); background:var(--panel-2); font-size:var(--t-sm); color:var(--faint)}
+  .foot nav{margin-left:auto; display:flex; gap:16px}
+  .foot a{color:var(--muted); text-decoration:none}
+</style>
+<div class="frame">
+  <header class="head">
+    <span class="brand"><span class="mk"></span>POE 툴박스</span>
+    <nav class="nav"><a href="#" aria-current="page">도구</a><a href="#">가이드</a></nav>
+  </header>
+  <div class="body">
+    <h1>아이템 역번역기</h1>
+    <p>게임에서 아이템을 복사한 뒤 왼쪽에 붙여넣으세요. 영문 Path of Building 의
+       아이템 입력칸에 그대로 넣을 수 있는 형태로 바꿔 줍니다.</p>
+  </div>
+  <footer class="foot">
+    <span>모든 처리는 브라우저 안에서 이루어집니다.</span>
+    <nav><a href="#">개인정보처리방침</a><a href="#">GitHub</a></nav>
+  </footer>
+</div>
