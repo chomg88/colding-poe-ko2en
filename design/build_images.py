@@ -58,8 +58,10 @@ def main():
         diamond(d, c, c, int(s * 3.2), accent)
         diamond(d, c, c, int(s * 1.3), bg)
         imgs.append(im.resize((s, s), Image.LANCZOS))
-    imgs[0].save(os.path.join(OUT, "favicon.ico"), format="ICO",
-                 sizes=[(s, s) for s in sizes], append_images=imgs[1:])
+    # PIL 의 ICO 저장은 append_images 를 무시하고 sizes 로 리샘플한다.
+    # 가장 큰 것을 넘기고 sizes 로 나머지를 만들게 해야 여러 크기가 들어간다.
+    imgs[-1].save(os.path.join(OUT, "favicon.ico"), format="ICO",
+                  sizes=[(s, s) for s in sizes])
 
     # ── og.png — 공유 미리보기
     W, H = 1200, 630
