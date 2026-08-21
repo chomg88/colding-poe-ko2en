@@ -12,7 +12,8 @@
   },
   "dependencies": {
     "@astrojs/sitemap": "^3.7.3",
-    "astro": "^7.2.3"
+    "astro": "^7.2.3",
+    "firebase": "^12.18.0"
   },
   "devDependencies": {
     "wrangler": "^4.124.0"

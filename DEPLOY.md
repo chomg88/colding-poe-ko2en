@@ -116,6 +116,44 @@ grep -rn 'AdSlot slot' web/src/pages
   가이드가 최소 몇 편은 살아 있어야 한다.
 - `robots.txt` 와 사이트맵이 크롤링을 막고 있지 않은지. `/robots.txt` 는 전면 허용이다.
 
+## Firebase
+
+방문 통계용이다. 콘솔 프로젝트는 `colding-poe`, 측정 ID 는 `G-ZLS9XJS77G`.
+
+설정값은 `site.js` 의 `FIREBASE` 에 그대로 박혀 있다. `apiKey` 를 포함해 전부
+클라이언트 번들에 나가는 공개 값이다 — 이건 비밀이 아니라 프로젝트 식별자고,
+Firebase 도 그렇게 쓰라고 준다. 실제 접근 제어는 콘솔의 **승인된 도메인**과
+보안 규칙에서 한다. 애널리틱스만 쓰는 지금은 승인된 도메인만 맞으면 된다.
+
+```js
+// web/src/site.js — 끄려면 apiKey 를 비운다
+FIREBASE = { apiKey: "...", measurementId: "G-ZLS9XJS77G", ... }
+```
+
+`apiKey` 나 `measurementId` 가 비어 있으면 `Analytics.astro` 가 스크립트를 아예
+내보내지 않는다. 애드센스와 같은 방식이다.
+
+**로딩 방식.** `firebase/analytics` 는 gzip 14KB 쯤 되고 googletagmanager 스크립트를
+따로 끌고 온다. 그래서 `src/lib/firebase.js` 에서 동적 import 로 미룬다. 첫 화면
+렌더를 막지 않고, `isSupported()` 가 false 인 환경(쿠키 차단, 일부 인앱 브라우저)에서는
+그냥 조용히 아무것도 하지 않는다. 실패해도 사이트는 그대로 돈다.
+
+**페이지뷰**는 GA4 가 알아서 보낸다. MPA 라 페이지마다 새로 로드되므로 라우팅 훅이 없다.
+
+**직접 이벤트를 보내려면** `track()` 을 쓴다. 미지원 환경이면 알아서 무시된다.
+
+```js
+import { track } from "../lib/firebase.js";
+track("item_converted", { lines: 42 });
+```
+
+아이템 텍스트처럼 사용자가 입력한 내용은 절대 파라미터에 싣지 않는다.
+`/privacy/` 에 "입력 내용은 통계로 전송되지 않는다" 고 적어 뒀다.
+
+**확인.** 릴리스 후 Firebase 콘솔 → Analytics → DebugView 나 실시간 보고서에 찍히는지
+본다. 로컬 `npm run dev` 에서도 나가므로, 개발 트래픽을 섞기 싫으면 브라우저 확장이나
+`apiKey` 를 잠깐 비워서 막는다.
+
 ## 리그 갱신
 
 한글 POB 사전이 바뀌었을 때.

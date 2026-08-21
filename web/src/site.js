@@ -18,6 +18,20 @@ export const SITE = {
   },
 };
 
+// Firebase. 콘솔의 "웹 앱" 설정에 나오는 값 그대로다.
+// 전부 클라이언트 번들에 박히는 공개 값이다 — apiKey 도 비밀이 아니라 프로젝트 식별자다.
+// 접근 제어는 Firebase 콘솔의 보안 규칙과 승인된 도메인에서 한다.
+// apiKey 를 비워두면 Firebase 초기화 자체를 건너뛴다.
+export const FIREBASE = {
+  apiKey: "AIzaSyBdkgrthsbBExUe1CbGypgThIqFsd3Dn0s",
+  authDomain: "colding-poe.firebaseapp.com",
+  projectId: "colding-poe",
+  storageBucket: "colding-poe.firebasestorage.app",
+  messagingSenderId: "884278995501",
+  appId: "1:884278995501:web:79b331ab0ab7b9b67aa6a4",
+  measurementId: "G-ZLS9XJS77G",
+};
+
 // 도구 목록. 새 도구를 추가하면 랜딩 카드와 네비게이션에 자동 반영된다.
 // 상단 탭바. 도구가 늘어나면 여기에 추가한다.
 export const TABS = [

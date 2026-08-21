@@ -1,0 +1,13 @@
+---
+/* Firebase Analytics 부팅. SITE 쪽 FIREBASE.apiKey 가 비어 있으면 아무것도 내보내지 않는다.
+   getAnalytics() 를 부르는 것만으로 GA4 가 page_view 를 자동으로 보낸다.
+   MPA 라서 페이지마다 새로 로드되므로 라우팅 훅은 필요 없다. */
+import { FIREBASE } from "../site.js";
+const on = Boolean(FIREBASE.apiKey && FIREBASE.measurementId);
+---
+{on && (
+  <script>
+    import { getAnalytics } from "../lib/firebase.js";
+    getAnalytics();
+  </script>
+)}
