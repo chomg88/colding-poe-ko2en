@@ -49,4 +49,20 @@ export const TOOLS = [
     tags: ["번역", "POB"],
     ready: true,
   },
+  {
+    slug: "tablet",
+    href: "/tools/tablet/",
+    name: "POE2 서판 시세",
+    blurb: "서판 옵션별 즉시구입 시세를 서판 종류마다 모아 봅니다. 어떤 옵션이 비싸게 팔리는지 한눈에 보입니다.",
+    tags: ["POE2", "시세"],
+    ready: true,
+  },
 ];
+
+// 서판 시세. 값은 운영자 PC 의 수집기가 GitHub data 브랜치에 올린다 — 사이트 빌드·배포와
+// 따로 움직인다(DEPLOY.md 「서판 시세」). 이 시간이 지나도록 새 값이 없으면 경고를 띄운다.
+export const TABLET = {
+  prices: "https://raw.githubusercontent.com/chomg88/colding-poe-ko2en/data/tablet-prices.json",
+  warnHours: 3,
+  badHours: 24,
+};

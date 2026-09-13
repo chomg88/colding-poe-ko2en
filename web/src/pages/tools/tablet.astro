@@ -1,0 +1,147 @@
+---
+import Base from "../../layouts/Base.astro";
+import AdSlot from "../../components/AdSlot.astro";
+import "../../styles/tablet.css";
+import { TABLET } from "../../site.js";
+import { readdirSync } from "node:fs";
+import { join } from "node:path";
+
+/* 카탈로그 파일명에는 내용 해시가 박혀 있다(영구 캐시용). 아이템 변환기와 같이
+   빌드 시점에 public/data/ 를 훑어 실제 파일명을 찾는다. 시세 파일은 빌드와 따로
+   움직이므로(운영자 PC → data 브랜치) 주소만 넘긴다. */
+const files = readdirSync(join(process.cwd(), "public", "data"));
+const catalog = files.find((f) => f.startsWith("tablet-catalog-") && f.endsWith(".json.gz"));
+if (!catalog) {
+  throw new Error("public/data/ 에 tablet-catalog-*.json.gz 가 없습니다. python3 tools/tablet_catalog.py 를 먼저 실행하세요.");
+}
+
+const description =
+  "Path of Exile 2 서판 옵션별 즉시구입 시세. 어떤 옵션이 붙은 서판이 거래소에서 얼마에 팔리는지 서판 종류별로 봅니다.";
+const jsonld = {
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  name: "POE2 서판 시세",
+  url: new URL("/tools/tablet/", Astro.site).href,
+  applicationCategory: "UtilitiesApplication",
+  operatingSystem: "Web",
+  inLanguage: "ko",
+  description,
+  offers: { "@type": "Offer", price: "0", priceCurrency: "KRW" },
+};
+---
+<Base title="POE2 서판 시세" description={description} jsonld={jsonld}>
+  <section class="lede">
+    <h1>POE2 서판 시세</h1>
+    <p>
+      서판 옵션 하나가 붙은 서판이 거래소에서 지금 얼마에 팔리는지 봅니다.
+      <strong>즉시구입 매물 · 잔여 사용 10회</strong> 기준이고, 옵션마다 가장 싼 10건의 중앙값입니다.
+    </p>
+  </section>
+
+  <div
+    class="tb"
+    data-tablet
+    data-catalog={`/data/${catalog}`}
+    data-prices={TABLET.prices}
+    data-warn={TABLET.warnHours}
+    data-bad={TABLET.badHours}
+  >
+    <div class="tb-veil" data-veil>
+      <div class="bar"><i></i></div>
+      <div data-veil-note>시세 불러오는 중</div>
+    </div>
+
+    <div data-app hidden>
+      <p class="tb-alert" data-alert hidden></p>
+      <div class="tb-status" data-status></div>
+      <div class="tb-bar">
+        <div class="seg" data-seg="base" aria-label="서판 종류"></div>
+        <div class="seg" data-seg="affix" aria-label="접두 · 접미">
+          <button type="button" data-v="all">전체</button>
+          <button type="button" data-v="prefix">접두</button>
+          <button type="button" data-v="suffix">접미</button>
+        </div>
+        <div class="seg" data-seg="cur" aria-label="화폐 단위">
+          <button type="button" data-v="ex">엑잘</button>
+          <button type="button" data-v="div">디바인</button>
+        </div>
+        <label class="tb-field">기준 <input type="number" min="0" step="1" data-th /> 엑잘 이상 강조</label>
+        <label class="tb-field"><input type="checkbox" data-only /> 기준 이상만</label>
+        <label class="tb-field"><input type="search" placeholder="옵션 검색" aria-label="옵션 검색" data-q /></label>
+        <span class="tb-count" data-count></span>
+      </div>
+      <div class="tb-scroll">
+        <table class="tb-table">
+          <thead>
+            <tr>
+              <th class="num">#</th>
+              <th data-hbase>서판</th>
+              <th>분류</th>
+              <th>옵션</th>
+              <th class="num">매물</th>
+              <th class="num">최저 <span class="tb-unit" data-unit></span></th>
+              <th class="num">중앙값 <span class="tb-unit" data-unit></span></th>
+              <th>수치별 중앙값 <span class="tb-unit" data-unit></span></th>
+              <th class="num">갱신</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody data-rows></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <AdSlot slot="" />
+
+  <section class="guide">
+    <h2>이 표를 읽는 법</h2>
+    <dl class="faq">
+      <dt>중앙값은 무엇인가요</dt>
+      <dd>
+        그 옵션이 붙은 서판을 즉시구입 매물로 가격 오름차순 검색해서, 가장 싼 10건의 중앙값을 냅니다.
+        시장 평균이 아니라 <strong>지금 바로 살 수 있는 바닥값</strong>에 가깝습니다.
+        가격은 그 시점 환율로 엑잘에 맞춰 환산합니다.
+      </dd>
+
+      <dt>옵션 하나만 보고 매긴 값입니다</dt>
+      <dd>
+        검색 조건은 서판 종류, 잔여 사용 10회, 그 옵션 하나뿐입니다. 다른 옵션이 같이 붙은
+        매물도 섞여 있습니다. 그래서 흔한 옵션은 서판 자체의 바닥값에 가깝게 나오고,
+        좋은 옵션과 자주 같이 붙는 옵션은 조금 높게 나올 수 있습니다.
+      </dd>
+
+      <dt>수치별 중앙값</dt>
+      <dd>
+        옵션 수치를 "이 값 이상"으로 걸어 따로 검색한 결과입니다. 요청 한도 때문에
+        대표 중앙값이 30엑잘 이상인 옵션만 수치별로 더 봅니다. 칩을 누르면 그 검색이 거래소에서 열립니다.
+      </dd>
+
+      <dt>(음수 검색) 표시</dt>
+      <dd>
+        "공물 점수 감소" 같은 옵션은 거래소에 "증가"의 음수로 올라 있어서 그렇게 검색합니다.
+        값에는 영향이 없습니다.
+      </dd>
+
+      <dt>값은 언제 바뀌나요</dt>
+      <dd>
+        수집기가 거래소 요청 한도 안에서 옵션을 하나씩 돌며 모읍니다. 한 바퀴에 몇 시간이
+        걸리고, 같은 옵션은 6시간마다 다시 봅니다. 수집이 멈추면 표 위에 경고가 뜹니다.
+        큰 거래 전에는 거래소 링크로 직접 확인해 주세요.
+      </dd>
+
+      <dt>원본</dt>
+      <dd>
+        <a href="https://poe2-tablet-market-tool.netlify.app/" rel="noopener">POE2 서판 시세 분석기</a>의
+        방식을 따라 새로 만들었습니다. 원본이 새 시즌을 따라가지 않아 이어받았습니다.
+      </dd>
+    </dl>
+  </section>
+
+  <AdSlot slot="" />
+</Base>
+
+<script>
+  import { mount } from "../../lib/tablet/ui.js";
+  mount(document.querySelector("[data-tablet]"));
+</script>

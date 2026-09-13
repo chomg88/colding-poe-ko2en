@@ -175,6 +175,57 @@ git push origin main
 CSV 를 하나도 못 찾으면 빌드가 멈춘다 — 예전에는 조용히 빈 사전을 만들어 결과물을
 망가뜨렸다.
 
+## 서판 시세
+
+`/tools/tablet/` 은 다른 도구와 달리 **값이 사이트 밖에서 온다.** 빌드에 들어가는 건
+카탈로그(무엇을 물어볼지)뿐이고, 시세는 운영자 PC 의 수집기가 모아 이 저장소의
+`data` 브랜치에 올린다.
+
+```
+tools/tablet_catalog.py  ──→  web/public/data/tablet-catalog-*.json.gz   (git 포함, 시즌마다)
+                                      │ 같은 파일을 읽는다
+운영자 PC 수집기 (poe1_macro/poe2_serve.py)
+        │ 30분마다, 값이 바뀌었으면
+        ▼
+data 브랜치 tablet-prices.json  ──→  raw.githubusercontent.com  ──→  페이지가 직접 읽는다
+```
+
+**왜 사이트가 직접 모으지 못하나.** 카카오 거래 API 는 다른 출처에서 부를 수 없고(CORS),
+로그인 없이 부르면 숨은 한도에 걸려 10분씩 막힌다. 로그인된 브라우저를 낀 수집기만
+안정적으로 돈다. CI 에 쿠키를 넣는 방법은 쓰지 않는다.
+
+**왜 data 브랜치인가.** 시세 파일(~100KB)을 `main` 에 커밋하면 30분마다 기록이 쌓이고
+미리보기 배포까지 돈다. `data` 는 배포 워크플로 트리거(`main`, `release/**`)에 안 걸리고,
+수집기가 부모 없는 커밋 하나를 계속 강제 푸시하므로 기록도 쌓이지 않는다.
+**`data` 브랜치에 사람이 커밋하지 않는다** — 다음 게시가 덮어쓴다.
+
+**멈추면.** 운영자 PC 가 꺼지면 값이 멈춘다. 페이지는 파일 안의 `updatedAt`(가장 최근에
+본 구간의 시각)이 `site.js` 의 `TABLET.warnHours`(3시간)를 넘으면 노란 경고,
+`badHours`(24시간)를 넘으면 빨간 경고를 띄운다. 리그가 카탈로그와 다르면 그것도 경고한다.
+
+**시즌이 바뀌면**
+
+```bash
+# 1. 카탈로그 다시 생성 — 새 리그 id 는 거래소 /api/trade2/data/leagues 에서
+python3 tools/tablet_catalog.py --refresh --league "새 리그 id"
+#    [못 맞춤] 줄이 나오면 tools/tablet_catalog.py 의 OVERRIDES 에 stat id 를 적고 다시
+
+# 2. 커밋하고 평소처럼 릴리스 — 카탈로그 파일명이 바뀌므로 반드시 같이 올라간다
+git add -A && git commit -m "서판 카탈로그 — 새 리그"
+```
+
+수집기 쪽 리그(`poe1_macro/poe2_wealth.py` 의 `LEAGUE`)도 같이 바꾼다. 둘이 다르면
+수집기가 멈추고 이유를 알려준다.
+
+**시세 파일 모양** — `b` 의 키는 카탈로그 `mods[].keys` 와 같다.
+
+```json
+{"schema":1, "league":"Forbidden Rites", "catalog":"tablet-catalog-….json.gz",
+ "publishedAt":1757700000, "updatedAt":1757699000,
+ "rates":{"divine":400,"chaos":50}, "progress":{"rep":[120,254],"deep":[10,40]},
+ "b":{"<옵션id>:<최소수치>":[시각, 매물 수, 값 낸 수, 최저, 중앙값, 검색id]}}
+```
+
 ## 함정
 
 실제로 겪고 고친 것들이다. 다시 밟지 않도록 적어 둔다.

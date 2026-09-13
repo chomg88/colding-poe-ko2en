@@ -14,6 +14,9 @@ pob-ko2en.html
 # 로컬 미리보기 설정
 .claude/
 
+# 서판 카탈로그가 받아 둔 poe2db·거래소 원본 (tools/tablet_catalog.py)
+/.cache/
+
 # Astro
 web/node_modules/
 web/dist/

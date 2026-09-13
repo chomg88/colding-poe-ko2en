@@ -1,0 +1,99 @@
+/* 서판 시세. 토큰은 tokens.css 에서 온다. */
+.tb{
+  position:relative; min-height:360px;
+  border:1px solid var(--line-2); border-radius:var(--r-md); overflow:hidden;
+  background:var(--panel);
+}
+
+/* 로딩 — 아이템 변환기의 막과 같다 */
+.tb-veil{
+  position:absolute; inset:0; display:grid; place-content:center; gap:12px;
+  justify-items:center; background:var(--panel); color:var(--muted);
+  font-size:var(--t-sm); z-index:5;
+}
+.tb-veil .bar{width:180px; height:2px; background:var(--line-2); overflow:hidden}
+.tb-veil .bar i{display:block; height:100%; width:40%; background:var(--accent);
+  animation:tb-sl 1.1s ease-in-out infinite}
+@keyframes tb-sl{0%{transform:translateX(-100%)}100%{transform:translateX(320%)}}
+@media (prefers-reduced-motion:reduce){.tb-veil .bar i{animation:none; width:100%}}
+
+/* 경고 — 값이 오래됐을 때. 게임의 희귀 노랑 / 타락 적색 */
+.tb-alert{
+  margin:0; padding:10px 14px; font-size:var(--t-md); line-height:1.65;
+  border-bottom:1px solid var(--line-2);
+}
+.tb-alert.warn{color:var(--st-warn); background:rgba(255,255,119,.06); border-bottom-color:var(--rb-rare)}
+.tb-alert.bad{color:var(--st-bad); background:rgba(224,86,63,.09); border-bottom-color:#5e2a20}
+
+.tb-status{
+  display:flex; gap:6px 16px; flex-wrap:wrap; padding:8px 14px;
+  font-size:var(--t-sm); color:var(--muted);
+  background:var(--panel-2); border-bottom:1px solid var(--line);
+}
+.tb-status b{color:var(--ink-2); font-weight:600; font-variant-numeric:tabular-nums}
+.tb-err{color:var(--st-bad)}
+
+.tb-bar{
+  display:flex; gap:8px 10px; flex-wrap:wrap; align-items:center;
+  padding:10px 14px; border-bottom:1px solid var(--line);
+}
+.seg{display:inline-flex; flex-wrap:wrap; border:1px solid var(--line-2); border-radius:var(--r-sm); overflow:hidden}
+.seg button{
+  font-family:var(--f-body); font-size:var(--t-sm); font-weight:550; color:var(--muted);
+  background:transparent; border:0; padding:4px 10px; cursor:pointer;
+}
+.seg button + button{border-left:1px solid var(--line-2)}
+.seg button:hover{color:var(--ink-2)}
+.seg button[aria-pressed="true"]{background:var(--accent-soft); color:var(--accent-hi)}
+.tb-field{display:inline-flex; align-items:center; gap:6px; font-size:var(--t-sm); color:var(--muted)}
+.tb-field input[type=number],.tb-field input[type=search]{
+  background:var(--sunken); color:var(--ink); border:1px solid var(--line-2);
+  border-radius:var(--r-sm); padding:4px 8px; font:inherit; font-size:var(--t-sm);
+}
+.tb-field input[type=number]{width:72px}
+.tb-field input:focus-visible{outline:0; border-color:var(--accent)}
+.tb-field input[type=checkbox]{accent-color:var(--accent)}
+.tb-count{margin-left:auto; font-size:var(--t-sm); color:var(--faint)}
+
+/* 표 — 좁은 화면에서는 이 안에서만 가로로 민다 */
+.tb-scroll{overflow-x:auto; background:var(--sunken)}
+.tb-table{border-collapse:collapse; width:100%; font-size:var(--t-md)}
+.tb-table th{
+  text-align:left; padding:8px 10px; white-space:nowrap;
+  font-size:var(--t-xs); letter-spacing:.06em; font-weight:700; color:var(--faint);
+  border-bottom:1px solid var(--line-2); background:var(--panel-2);
+}
+.tb-table td{padding:7px 10px; border-bottom:1px solid var(--line); vertical-align:middle}
+.tb-table .num{text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap}
+.tb-unit{color:var(--accent-hi); letter-spacing:0; font-weight:600}
+.tb-table tr.hot td{background:var(--accent-soft)}
+.tb-table tr.stale td{opacity:.55}
+.tb-dim{color:var(--faint)}
+.tb-base{color:var(--muted); font-size:var(--t-sm); white-space:nowrap}
+.tb-mod{color:var(--ink); min-width:22ch}
+.tb-empty{padding:28px 14px; text-align:center; color:var(--faint)}
+
+/* 접두는 마법 파랑, 접미는 화폐 황갈 — 게임 색에서 */
+.tb-aff{font-size:var(--t-xs); font-weight:700; border-radius:var(--r-sm); padding:1px 6px; white-space:nowrap}
+.tb-aff.prefix{color:var(--r-magic); border:1px solid var(--rb-magic)}
+.tb-aff.suffix{color:var(--r-currency); border:1px solid #4a4436}
+
+.tb-med{font-weight:620; color:var(--ink)}
+.tb-med.hot{color:var(--accent-hi)}
+
+/* 칩은 한 줄로 — 줄바꿈하면 행이 세 배로 높아진다. 좁으면 표가 가로로 민다 */
+.tb-chips{display:flex; gap:4px; flex-wrap:nowrap}
+.tb-chip{
+  font-size:var(--t-xs); white-space:nowrap; color:var(--muted);
+  background:var(--panel); border:1px solid var(--line-2); border-radius:var(--r-sm); padding:1px 6px;
+}
+.tb-chip b{color:var(--ink-2); font-weight:600}
+a.tb-chip:hover{border-color:var(--accent); text-decoration:none}
+.tb-chip.hot{border-color:var(--rb-unique)}
+.tb-chip.hot b{color:var(--accent-hi)}
+.tb-chip.err{color:var(--st-bad); border-color:#5e2a20}
+.tb-go{font-size:var(--t-sm); white-space:nowrap}
+
+@media (max-width:720px){
+  .tb-count{margin-left:0; width:100%}
+}
