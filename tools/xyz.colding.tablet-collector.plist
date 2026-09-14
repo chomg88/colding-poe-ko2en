@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 서판 시세 수집기를 로그인할 때마다 띄우고, 죽으면 다시 띄운다.
+
+     설치 (DEPLOY.md 「서판 시세」)
+       cp tools/xyz.colding.tablet-collector.plist ~/Library/LaunchAgents/
+       launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/xyz.colding.tablet-collector.plist
+
+     저장소 경로가 다르면 WorkingDirectory 와 ProgramArguments 를 고친다.
+     아나콘다가 아니라 시스템 python3 를 쓴다 — 아나콘다는 지웠다 깔았다 하니까. -->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>xyz.colding.tablet-collector</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/usr/bin/python3</string>
+    <string>/Users/1113260/github/colding-poe-ko2en/tools/tablet_prices.py</string>
+  </array>
+
+  <key>WorkingDirectory</key>
+  <string>/Users/1113260/github/colding-poe-ko2en</string>
+
+  <key>RunAtLoad</key>
+  <true/>
+  <!-- 거래소 한도에 걸려 죽거나 맥이 잠에서 깨면 다시 띄운다. 너무 빨리 되살리면
+       한도만 더 먹으므로 60초 쉬고. -->
+  <key>KeepAlive</key>
+  <true/>
+  <key>ThrottleInterval</key>
+  <integer>60</integer>
+
+  <key>StandardOutPath</key>
+  <string>/Users/1113260/github/colding-poe-ko2en/.cache/tablet/collector.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/1113260/github/colding-poe-ko2en/.cache/tablet/collector.log</string>
+
+  <!-- git push 가 자격증명(osxkeychain)을 찾을 수 있어야 한다 -->
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+    <key>HOME</key>
+    <string>/Users/1113260</string>
+  </dict>
+</dict>
+</plist>

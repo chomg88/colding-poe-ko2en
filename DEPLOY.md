@@ -184,15 +184,26 @@ CSV 를 하나도 못 찾으면 빌드가 멈춘다 — 예전에는 조용히 �
 ```
 tools/tablet_catalog.py  ──→  web/public/data/tablet-catalog-*.json.gz   (git 포함, 시즌마다)
                                       │ 같은 파일을 읽는다
-운영자 PC 수집기 (poe1_macro/poe2_serve.py)
+tools/tablet_prices.py (운영자 맥, launchd 로 상시)
         │ 30분마다, 값이 바뀌었으면
         ▼
 data 브랜치 tablet-prices.json  ──→  raw.githubusercontent.com  ──→  페이지가 직접 읽는다
 ```
 
-**왜 사이트가 직접 모으지 못하나.** 카카오 거래 API 는 다른 출처에서 부를 수 없고(CORS),
-로그인 없이 부르면 숨은 한도에 걸려 10분씩 막힌다. 로그인된 브라우저를 낀 수집기만
-안정적으로 돈다. CI 에 쿠키를 넣는 방법은 쓰지 않는다.
+**왜 사이트가 직접 모으지 못하나.** 카카오 거래 API 는 다른 출처에서 부를 수 없다(CORS).
+그리고 IP 마다 한도가 걸려 있어 한 바퀴에 여섯 시간이 필요하다 — 방문자 브라우저나
+CI 에서 할 수 있는 일이 아니다. 로그인은 필요 없다(2026-09-14 확인). 한도는 응답 헤더에
+그대로 온다.
+
+```
+검색 5:10:60, 15:60:300, 30:300:1800, 600:21600:3600      ← 제일 빡빡하다
+상세 12:4:10, 16:12:300, 50:300:300, 1000:21600:1800
+환전 5:15:60, 10:90:300, 30:300:1800
+```
+
+"600:21600:3600" 은 21600초(6시간)에 600건까지, 넘으면 3600초 차단. 키 하나에 검색 1 +
+상세 1 이고 한 바퀴가 481키라, 45초에 하나씩(6시간 480키) 돈다. 수집기가 헤더의 잔량을
+보고 스스로 늦추고, 그래도 막히면(429) 시키는 만큼 쉰다.
 
 **왜 data 브랜치인가.** 시세 파일(~100KB)을 `main` 에 커밋하면 30분마다 기록이 쌓이고
 미리보기 배포까지 돈다. `data` 는 배포 워크플로 트리거(`main`, `release/**`)에 안 걸리고,
@@ -202,6 +213,28 @@ data 브랜치 tablet-prices.json  ──→  raw.githubusercontent.com  ──�
 **멈추면.** 운영자 PC 가 꺼지면 값이 멈춘다. 페이지는 파일 안의 `updatedAt`(가장 최근에
 본 구간의 시각)이 `site.js` 의 `TABLET.warnHours`(3시간)를 넘으면 노란 경고,
 `badHours`(24시간)를 넘으면 빨간 경고를 띄운다. 리그가 카탈로그와 다르면 그것도 경고한다.
+
+**수집기 돌리기**
+
+```bash
+python3 tools/tablet_prices.py --once --no-push --limit 5   # 시험 — 안 올리고 다섯 키만
+python3 tools/tablet_prices.py                              # 계속 돌면서 30분마다 게시
+
+# 맥에서 상시로 (로그인할 때 뜨고, 죽으면 다시 뜬다)
+cp tools/xyz.colding.tablet-collector.plist ~/Library/LaunchAgents/
+launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/xyz.colding.tablet-collector.plist
+launchctl print gui/$(id -u)/xyz.colding.tablet-collector | head    # 상태
+tail -f .cache/tablet/collector.log                                 # 하는 일
+launchctl bootout gui/$(id -u)/xyz.colding.tablet-collector         # 내리기
+```
+
+**수집기는 한 대만 돈다.** 게시가 부모 없는 강제 푸시라, 두 대가 돌면 서로 덮어쓰고
+값이 왔다 갔다 한다. 기계를 옮길 때는 새 기계를 `--no-push` 로 채운 뒤 옛 기계를 내린다.
+
+진행 상태는 `.cache/tablet/prices-state.json` 에 쌓인다(git 제외). 이 파일이 없으면
+`data` 브랜치에 올라가 있는 값을 씨앗으로 받아 이어서 돈다 — 새 기계에서 처음 돌려도
+한 바퀴(여섯 시간) 동안 페이지가 '대기' 로 비지 않는다. 리그나 카탈로그가 바뀌었으면
+씨앗을 버리고 처음부터 모은다.
 
 **시즌이 바뀌면**
 
@@ -214,8 +247,8 @@ python3 tools/tablet_catalog.py --refresh --league "새 리그 id"
 git add -A && git commit -m "서판 카탈로그 — 새 리그"
 ```
 
-수집기 쪽 리그(`poe1_macro/poe2_wealth.py` 의 `LEAGUE`)도 같이 바꾼다. 둘이 다르면
-수집기가 멈추고 이유를 알려준다.
+수집기는 리그를 카탈로그에서 읽으므로 따로 고칠 곳이 없다. 카탈로그가 바뀌면 모아 둔
+값을 버리고 처음부터 다시 모은다.
 
 **시세 파일 모양** — `b` 의 키는 카탈로그 `mods[].keys` 와 같다.
 
@@ -223,8 +256,22 @@ git add -A && git commit -m "서판 카탈로그 — 새 리그"
 {"schema":1, "league":"Forbidden Rites", "catalog":"tablet-catalog-….json.gz",
  "publishedAt":1757700000, "updatedAt":1757699000,
  "rates":{"divine":400,"chaos":50}, "progress":{"rep":[120,254],"deep":[10,40]},
- "b":{"<옵션id>:<최소수치>":[시각, 매물 수, 값 낸 수, 최저, 중앙값, 검색id]}}
+ "deepMin":30, "sample":10,
+ "b":{"<옵션id>:<최소수치>":[시각, 매물 수, 값 낸 수, 최저, 중앙값, 검색id, "오류"]}}
 ```
+
+`검색id` 는 거래소가 돌려준 그대로다 — 페이지가 거래소 링크로 쓴다. 마지막 `오류` 는
+그 키를 못 봤을 때만 붙는다.
+
+**무엇을 물어보나.** 616키를 다 돌면 여섯 시간에 안 들어와서 두 단계로 나눈다.
+옵션마다 가장 낮은 수치 하나씩(대표, 254키)을 먼저 채우고, 대표 중앙값이 `deepMin`
+(30엑잘) 이상인 비싼 옵션만 나머지 수치까지 본다(정밀, ~227키). 매물 열 건의 최저와
+중앙값을 싣는다.
+
+**값을 엑잘로 맞추는 법.** 매물 값표는 엑잘·디바인·카오스·바알 등 제각각이다. 환전소
+(`/api/trade2/exchange`)에서 디바인·카오스 값만 받아 환산하고, 나머지 화폐로 걸린
+매물은 세지 않는다(몇 건을 세었는지가 `값 낸 수`). 바알 같은 화폐는 엑잘 환전 시장이
+얇아 '1개 500엑잘' 같은 허수 호가가 섞이는데, 그걸로 환산하면 표가 통째로 망가진다.
 
 ## 함정
 
