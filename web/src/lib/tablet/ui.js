@@ -150,10 +150,17 @@ export function mount(el) {
     $("[data-q]").value = S.q;
   }
 
-  function chip(r, b) {
+  /* 대표가 싼 옵션은 나머지 수치를 모으지 않는다(수집기 deepMin). 그 칸은 '대기' 가
+     아니라 '안 봄' 이다 — 기다려도 값이 오지 않는다. */
+  const skipped = (r) => r.bands[0].med != null && r.bands[0].med < (P?.deepMin ?? 30);
+
+  function chip(r, b, i) {
     if (b.t == null) return "";
     const lab = `${b.t}${r.unit}+`;
     if (b.err) return `<span class="tb-chip err" title="${esc(b.err)}">${lab} 오류</span>`;
+    if (!b.at && i > 0 && skipped(r)) {
+      return `<span class="tb-chip off" title="대표 중앙값이 ${P.deepMin ?? 30}엑잘 미만이라 수치별 시세는 모으지 않습니다">${lab} <b>-</b></span>`;
+    }
     const v = b.at ? (b.med != null ? money(b.med) : "매물 없음") : "대기";
     const hot = b.med != null && b.med >= S.th ? " hot" : "";
     const tip = b.at ? `매물 ${b.total ?? "-"} · 최저 ${money(b.min)} ${unitName()} · ${ago(now() - b.at)} 전` : "아직 안 봄";
@@ -167,7 +174,7 @@ export function mount(el) {
     const hot = b0.med != null && b0.med >= S.th;
     const text = m.range ? m.text.replace("#", `(${m.range.min}–${m.range.max})`) : m.text;
     const stale = b0.at && now() - b0.at > badH * 3600;
-    const chips = m.bands.length ? r.bands.map((b) => chip(r, b)).join("") : `<span class="tb-dim">존재형</span>`;
+    const chips = m.bands.length ? r.bands.map((b, i) => chip(r, b, i)).join("") : `<span class="tb-dim">존재형</span>`;
     const med = b0.err ? `<span class="tb-chip err" title="${esc(b0.err)}">오류</span>`
       : b0.at ? `<span class="tb-med${hot ? " hot" : ""}">${b0.med != null ? money(b0.med) : "매물 없음"}</span>`
       : `<span class="tb-dim">대기</span>`;

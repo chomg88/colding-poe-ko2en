@@ -19,8 +19,8 @@ POE2 서판 시세 — 수집기.
     환전   5:15:60, 10:90:300, 30:300:1800
 
 읽는 법은 "600건까지 21600초(6시간) 안에, 넘으면 3600초 차단". 키 하나에 검색 1 +
-상세 1 이므로 6시간에 600키가 천장이고, 한 바퀴가 481키다. 45초에 하나(6시간 480키)면
-천장에 닿지 않으면서 한 바퀴를 6시간에 돈다. 응답 헤더의 잔량을 보고 스스로 더
+상세 1 이므로 6시간에 600키가 천장이다. 45초에 하나(6시간 480키)면 천장에 닿지 않고,
+한 바퀴 265키를 세 시간 남짓에 돈다. 응답 헤더의 잔량을 보고 스스로 더
 늦추고, 그래도 막히면(429) 시키는 만큼 쉰다. 로그인은 쓰지 않는다 — 한도는 IP 로 걸린다.
 
 무엇을 물어보는가
@@ -28,9 +28,11 @@ POE2 서판 시세 — 수집기.
 전부 물어보면 616키라 6시간에 안 들어온다. 두 단계로 나눈다.
 
     대표(rep)   옵션마다 가장 낮은 수치 하나씩              254키
-    정밀(deep)  대표 중앙값이 30엑잘 이상인 옵션의 나머지 수치  ~227키
+    정밀(deep)  대표 중앙값이 200엑잘 이상인 옵션의 나머지 수치  ~11키
 
-비싼 옵션만 수치별로 자세히 본다. 싼 옵션은 대표값 하나로 충분하다.
+비싼 옵션만 수치별로 자세히 본다. 싼 옵션은 대표값 하나로 충분하다. 기준이 30엑잘일
+때는 정밀이 227키라 한 바퀴가 여섯 시간이었고, 표의 줄마다 시각이 여섯 시간에 한 번
+바뀌었다. 비싼 옵션만 가려내면 되므로 200엑잘로 올렸다.
 
     python3 tools/tablet_prices.py --once      # 한 바퀴만 돌고 끝 (시험용)
     python3 tools/tablet_prices.py             # 계속 돌면서 30분마다 게시
@@ -50,7 +52,7 @@ BASE = "https://poe.kakaogames.com"
 UA = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36")
 SAMPLE = 10             # 키마다 볼 매물 수 — 상세 한 번에 10개까지 온다
-DEEP_MIN = 30.0         # 대표 중앙값이 이 값(엑잘) 이상이면 나머지 수치도 본다
+DEEP_MIN = 200.0        # 대표 중앙값이 이 값(엑잘) 이상이면 나머지 수치도 본다
 GAP = 45                # 키 사이 기본 간격(초). 검색 600:21600 에서 뒤로 계산했다
 RATE_TTL = 3600         # 디바인·카오스 환산은 한 시간에 한 번
 PUBLISH_EVERY = 1800    # 30분마다, 바뀐 게 있으면 올린다
@@ -241,6 +243,21 @@ def catalog():
         return os.path.basename(files[0]), json.load(f)
 
 
+def weave(rep, deep):
+    """대표와 정밀을 남은 수에 비례해 섞는다.
+
+    그냥 오래된 것부터 돌면 한쪽이 몰린다 — 기계를 옮기던 날 정밀 키가 전부 더 오래돼서
+    세 시간 넘게 정밀만 봤다. 화면의 줄마다 보이는 시각·중앙값은 대표 키 것이라, 그동안
+    표가 멈춘 것처럼 보인다. 한 바퀴에 걸리는 시간은 그대로지만 골고루 새로워진다."""
+    out, i, j = [], 0, 0
+    while i < len(rep) or j < len(deep):
+        if j >= len(deep) or (i < len(rep) and i * len(deep) <= j * len(rep)):
+            out.append(rep[i]); i += 1
+        else:
+            out.append(deep[j]); j += 1
+    return out
+
+
 def plan(cat, b):
     """물어볼 키 목록. 대표부터 채우고, 대표가 비싼 옵션만 나머지 수치로 넘어간다."""
     bases = {x["type"]: x for x in cat["bases"]}
@@ -264,13 +281,17 @@ def plan(cat, b):
 
 def compose(cat, name, b, rates, rep, deep):
     seen = lambda jobs: sum(1 for k, *_ in jobs if b.get(k))
+    # 이번 계획에 없는 키는 싣지 않는다 — 기준이 바뀌어 더는 안 보는 수치가 옛 값 그대로
+    # 남아 있으면 화면에서 지금 시세처럼 읽힌다. 상태 파일에는 남겨 둔다.
+    planned = {k for k, *_ in rep + deep}
     ats = [v[0] for v in b.values() if v and v[0]]
     return {
         "schema": 1, "league": cat["league"], "catalog": name,
         "publishedAt": int(time.time()), "updatedAt": max(ats) if ats else 0,
         "rates": {k: v for k, v in rates.items() if k != "exalted"},
         "progress": {"rep": [seen(rep), len(rep)], "deep": [seen(deep), len(deep)]},
-        "deepMin": DEEP_MIN, "sample": SAMPLE, "b": b,
+        "deepMin": DEEP_MIN, "sample": SAMPLE,
+        "b": {k: v for k, v in b.items() if k in planned},
     }
 
 
@@ -365,9 +386,10 @@ def main():
                                         for k, v in rates.items() if k != "exalted"))
 
         rep, deep = plan(cat, b)
-        jobs = rep + deep
         # 오래 안 본 것부터. 아직 한 번도 안 본 키가 먼저다.
-        jobs.sort(key=lambda j: (b.get(j[0]) or [0])[0])
+        for q in (rep, deep):
+            q.sort(key=lambda j: (b.get(j[0]) or [0])[0])
+        jobs = weave(rep, deep)
         if args.limit:
             jobs = jobs[:args.limit]
         print(f"  대표 {len(rep)} · 정밀 {len(deep)} — 이번 바퀴 {len(jobs)}키, "

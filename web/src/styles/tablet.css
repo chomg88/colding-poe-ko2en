@@ -92,6 +92,7 @@ a.tb-chip:hover{border-color:var(--accent); text-decoration:none}
 .tb-chip.hot{border-color:var(--rb-unique)}
 .tb-chip.hot b{color:var(--accent-hi)}
 .tb-chip.err{color:var(--st-bad); border-color:#5e2a20}
+.tb-chip.off{opacity:.45}
 .tb-go{font-size:var(--t-sm); white-space:nowrap}
 
 @media (max-width:720px){
