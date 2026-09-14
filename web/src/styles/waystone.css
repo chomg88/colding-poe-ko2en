@@ -1,0 +1,11 @@
+/* 경로석 시세. 막·경고·표 뼈대는 서판(tablet.css)과 같은 것을 쓰고, 여기에는 다른 것만. */
+.ws-axis{color:var(--ink); font-weight:600; white-space:nowrap}
+.ws-val{font-weight:620; color:var(--ink)}
+.ws-val a{color:var(--accent-hi)}
+.ws-dim{color:var(--faint)}
+.ws-off{color:var(--faint); opacity:.45}
+.ws-err{color:var(--st-bad)}
+
+/* 축이 바뀌는 줄에만 선을 굵게 — 구간이 촘촘해 어디서 축이 갈리는지 안 보인다 */
+.tb-table tr.ws-first td{border-top:1px solid var(--line-2)}
+.tb-table tr.ws-floor td{background:var(--panel-2)}

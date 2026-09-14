@@ -40,6 +40,7 @@ POE2 서판 시세 — 수집기.
 """
 import argparse, glob, gzip, json, os, random, statistics, subprocess, sys, time
 import urllib.error, urllib.parse, urllib.request
+import waystone_prices as ws      # 경로석 구간표 — 같은 프로세스에서 섞어 돈다
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE) if os.path.basename(HERE) == "tools" else HERE
@@ -192,10 +193,11 @@ def query_for(mod, base, band):
     }
 
 
-def look(api, mod, base, band, rates):
-    """키 하나. [본 시각, 매물 수, 값 낸 수, 최저, 중앙값, 검색id] 를 돌려준다."""
+def sample(api, body, rates):
+    """검색 한 번 + 상세 한 번. [본 시각, 매물 수, 값 낸 수, 최저, 중앙값, 검색id] 를
+    돌려준다. 경로석 수집(tools/waystone_prices.py)도 이 함수로 값을 낸다."""
     league = urllib.parse.quote(api.league)
-    s = api.call(f"/api/trade2/search/poe2/{league}", query_for(mod, base, band), "search")
+    s = api.call(f"/api/trade2/search/poe2/{league}", body, "search")
     ids, qid, total = s.get("result") or [], s.get("id", ""), s.get("total", 0)
     if not ids:
         return [int(time.time()), total, 0, None, None, qid]
@@ -210,6 +212,11 @@ def look(api, mod, base, band, rates):
     ex.sort()
     return [int(time.time()), total, len(ex), ex[0] if ex else None,
             round(statistics.median(ex), 3) if ex else None, qid]
+
+
+def look(api, mod, base, band, rates):
+    """서판 키 하나."""
+    return sample(api, query_for(mod, base, band), rates)
 
 
 def cluster(vals, n=3, tol=1.15):
@@ -324,12 +331,18 @@ def compose(cat, name, b, rates, rep, deep):
     }
 
 
-def publish(doc, push=True):
+def publish(files, push=True):
     """data 브랜치에 부모 없는 커밋 하나로 강제 푸시한다. 30분마다 쌓이면 안 되니
-    기록을 남기지 않는다 — 사람이 이 브랜치에 커밋하지 않는다(DEPLOY.md)."""
+    기록을 남기지 않는다 — 사람이 이 브랜치에 커밋하지 않는다(DEPLOY.md).
+
+    files 는 {올릴 파일명: 문서} 다. 서판과 경로석을 한 트리에 같이 올린다 — 브랜치에
+    커밋 하나뿐이라, 한쪽만 올리면 다른 쪽이 트리에서 사라진다."""
     os.makedirs(STATE_DIR, exist_ok=True)
-    with open(OUT, "w", encoding="utf-8") as f:
-        json.dump(doc, f, ensure_ascii=False, separators=(",", ":"))
+    paths = {}
+    for fn, doc in files.items():
+        paths[fn] = os.path.join(STATE_DIR, fn)
+        with open(paths[fn], "w", encoding="utf-8") as f:
+            json.dump(doc, f, ensure_ascii=False, separators=(",", ":"))
     if not push:
         return "파일만 (--no-push)"
 
@@ -337,16 +350,17 @@ def publish(doc, push=True):
         return subprocess.run(("git",) + a, cwd=ROOT, capture_output=True, text=True,
                               check=True, **kw).stdout.strip()
 
-    blob = git("hash-object", "-w", OUT)
-    tree = git("mktree", input=f"100644 blob {blob}\ttablet-prices.json\n")
+    tree = git("mktree", input="".join(
+        f"100644 blob {git('hash-object', '-w', paths[fn])}\t{fn}\n" for fn in sorted(paths)))
     when = time.strftime("%Y-%m-%d %H:%M")
+    league = next(iter(files.values()))["league"]
     env = dict(os.environ, GIT_AUTHOR_NAME=WHO[0], GIT_AUTHOR_EMAIL=WHO[1],
                GIT_COMMITTER_NAME=WHO[0], GIT_COMMITTER_EMAIL=WHO[1])
     commit = subprocess.run(
-        ["git", "commit-tree", tree, "-m", f"서판 시세 {when} · {doc['league']}"],
+        ["git", "commit-tree", tree, "-m", f"시세 {when} · {league}"],
         cwd=ROOT, capture_output=True, text=True, check=True, env=env).stdout.strip()
     git("push", "-f", "origin", f"{commit}:refs/heads/{BRANCH}")
-    return f"{BRANCH} ← {commit[:7]}"
+    return f"{BRANCH} ← {commit[:7]} ({len(files)}개 파일)"
 
 
 # ── 도는 부분 ────────────────────────────────────────────────────────────
@@ -372,22 +386,26 @@ def seed(league, name):
 
 
 def load_state(league, name):
+    """→ (서판 값, 경로석 값). 경로석은 카탈로그가 없어 리그만 맞으면 이어서 쓴다."""
     try:
         with open(STATE, encoding="utf-8") as f:
             s = json.load(f)
-        if s.get("league") == league and s.get("catalog") == name:
-            return s.get("b") or {}
-        print("  리그나 카탈로그가 바뀌었다 — 값을 처음부터 다시 모은다")
-        return {}
+        if s.get("league") == league:
+            if s.get("catalog") == name:
+                return s.get("b") or {}, s.get("w") or {}
+            print("  카탈로그가 바뀌었다 — 서판 값을 처음부터 다시 모은다")
+            return {}, s.get("w") or {}
+        print("  리그가 바뀌었다 — 값을 처음부터 다시 모은다")
+        return {}, {}
     except (OSError, ValueError):
-        return seed(league, name)
+        return seed(league, name), {}
 
 
-def save_state(league, name, b):
+def save_state(league, name, b, w):
     os.makedirs(STATE_DIR, exist_ok=True)
     tmp = STATE + ".tmp"
     with open(tmp, "w", encoding="utf-8") as f:
-        json.dump({"league": league, "catalog": name, "b": b}, f, ensure_ascii=False)
+        json.dump({"league": league, "catalog": name, "b": b, "w": w}, f, ensure_ascii=False)
     os.replace(tmp, STATE)
 
 
@@ -404,8 +422,8 @@ def main():
 
     name, cat = catalog()
     api = Trade(cat["league"])
-    b = load_state(cat["league"], name)
-    print(f"{cat['league']} · 카탈로그 {name} · 이미 본 키 {len(b)}개")
+    b, w = load_state(cat["league"], name)
+    print(f"{cat['league']} · 카탈로그 {name} · 이미 본 키 서판 {len(b)} · 경로석 {len(w)}")
 
     rates, rates_at, last_pub, dirty = {"exalted": 1.0}, 0.0, 0.0, False
     while True:
@@ -418,29 +436,43 @@ def main():
         # 오래 안 본 것부터. 아직 한 번도 안 본 키가 먼저다.
         for q in (rep, deep):
             q.sort(key=lambda j: (b.get(j[0]) or [0])[0])
-        jobs = weave(rep, deep)
+        # 경로석은 43키뿐이라 서판에 섞어 돈다. 따로 돌리면 두 프로세스가 거래소 IP 한도를
+        # 나눠 쓰게 돼 서판 쪽이 그만큼 느려진다(DEPLOY.md 「경로석 시세」).
+        wj = sorted(ws.jobs(), key=lambda j: (w.get(j[0]) or [0])[0])
+        jobs = weave([("t",) + j for j in weave(rep, deep)], [("w",) + j for j in wj])
         if args.limit:
             jobs = jobs[:args.limit]
-        print(f"  대표 {len(rep)} · 정밀 {len(deep)} — 이번 바퀴 {len(jobs)}키, "
-              f"{len(jobs) * args.gap / 3600:.1f}시간쯤 걸린다")
+        print(f"  서판 대표 {len(rep)} · 정밀 {len(deep)} · 경로석 {len(wj)} — 이번 바퀴 "
+              f"{len(jobs)}키, {len(jobs) * args.gap / 3600:.1f}시간쯤 걸린다")
 
-        for n, (key, mod, base, band) in enumerate(jobs, 1):
+        def docs():
+            return {"tablet-prices.json": compose(cat, name, b, rates, rep, deep),
+                    "waystone-prices.json": ws.compose(cat["league"], w, rates,
+                                                       sum(1 for k, *_ in wj if w.get(k)))}
+
+        for n, job in enumerate(jobs, 1):
+            kind, key = job[0], job[1]
+            store = b if kind == "t" else w
             try:
-                rec = look(api, mod, base, band, rates)
-                b[key], dirty = rec, True
-                save_state(cat["league"], name, b)
-                print(f"  [{n}/{len(jobs)}] {key} {mod['base']} {mod['text'][:28]} "
-                      f"· 매물 {rec[1]} · 중앙 {rec[4]}")
+                if kind == "t":
+                    _, key, mod, base, band = job
+                    rec, what = look(api, mod, base, band, rates), f"{mod['base']} {mod['text'][:28]}"
+                else:
+                    _, key, tier, axis, band = job
+                    rec = ws.look(api, (key, tier, axis, band), rates, sample)
+                    what = ws.label(tier, axis, band)
+                store[key], dirty = rec, True
+                save_state(cat["league"], name, b, w)
+                print(f"  [{n}/{len(jobs)}] {key} {what} · 매물 {rec[1]} · 중앙 {rec[4]}")
             except RuntimeError as e:
-                old = b.get(key) or [int(time.time()), 0, 0, None, None, ""]
-                b[key] = old[:6] + [str(e)]     # 화면이 칸에 '오류' 를 띄운다
+                old = store.get(key) or [int(time.time()), 0, 0, None, None, ""]
+                store[key] = old[:6] + [str(e)]     # 화면이 칸에 '오류' 를 띄운다
                 dirty = True
                 print(f"  [{n}/{len(jobs)}] {key} 실패 — {e}")
 
             if dirty and time.time() - last_pub > PUBLISH_EVERY:
-                doc = compose(cat, name, b, rates, rep, deep)
                 try:
-                    print("  게시:", publish(doc, not args.no_push))
+                    print("  게시:", publish(docs(), not args.no_push))
                     last_pub, dirty = time.time(), False
                 except subprocess.CalledProcessError as e:
                     print(f"  게시 실패 — {(e.stderr or '').strip()[:200]}")
@@ -448,9 +480,8 @@ def main():
             if n < len(jobs):
                 time.sleep(args.gap * random.uniform(0.9, 1.1))
 
-        doc = compose(cat, name, b, rates, rep, deep)
         try:
-            print("  게시:", publish(doc, not args.no_push))
+            print("  게시:", publish(docs(), not args.no_push))
             last_pub, dirty = time.time(), False
         except subprocess.CalledProcessError as e:
             print(f"  게시 실패 — {(e.stderr or '').strip()[:200]}")

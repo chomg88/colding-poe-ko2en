@@ -57,6 +57,14 @@ export const TOOLS = [
     tags: ["POE2", "시세"],
     ready: true,
   },
+  {
+    slug: "waystone",
+    href: "/tools/waystone/",
+    name: "POE2 경로석 시세",
+    blurb: "15·16등급 경로석이 속성 수치별로 얼마에 팔리는지 봅니다. 어느 속성이 얼마나 굴러야 값이 붙는지 보입니다.",
+    tags: ["POE2", "시세"],
+    ready: true,
+  },
 ];
 
 // 서판 시세. 값은 운영자 PC 의 수집기가 GitHub data 브랜치에 올린다 — 사이트 빌드·배포와
@@ -64,5 +72,13 @@ export const TOOLS = [
 export const TABLET = {
   prices: "https://raw.githubusercontent.com/chomg88/colding-poe-ko2en/data/tablet-prices.json",
   warnHours: 3,
+  badHours: 24,
+};
+
+// 경로석 시세. 서판과 같은 수집기가 같은 data 브랜치에 같이 올린다 — 파일만 다르다.
+// 43구간을 32분에 한 바퀴 도는데 서판과 번갈아 돌아, 한 구간이 다시 오기까지 몇 시간 걸린다.
+export const WAYSTONE = {
+  prices: "https://raw.githubusercontent.com/chomg88/colding-poe-ko2en/data/waystone-prices.json",
+  warnHours: 6,
   badHours: 24,
 };

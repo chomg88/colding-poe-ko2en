@@ -1,0 +1,113 @@
+---
+import Base from "../../layouts/Base.astro";
+import AdSlot from "../../components/AdSlot.astro";
+import "../../styles/tablet.css";
+import "../../styles/waystone.css";
+import { WAYSTONE } from "../../site.js";
+
+/* 서판과 달리 빌드에 들어가는 카탈로그가 없다. 무엇을 물어봤는지(축·구간)까지 수집기가
+   시세 파일에 실어 보내므로, 페이지는 주소만 넘기면 된다(DEPLOY.md 「경로석 시세」). */
+
+const description =
+  "Path of Exile 2 경로석 시세. 15·16등급 경로석이 몬스터 효율·희귀도·무리 규모 같은 속성 수치별로 얼마에 팔리는지 봅니다.";
+const jsonld = {
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  name: "POE2 경로석 시세",
+  url: new URL("/tools/waystone/", Astro.site).href,
+  applicationCategory: "UtilitiesApplication",
+  operatingSystem: "Web",
+  inLanguage: "ko",
+  description,
+  offers: { "@type": "Offer", price: "0", priceCurrency: "KRW" },
+};
+---
+<Base title="POE2 경로석 시세" description={description} jsonld={jsonld}>
+  <section class="lede">
+    <h1>POE2 경로석 시세</h1>
+    <p>
+      경로석은 붙은 옵션이 아니라 <strong>아이템에 찍힌 속성 수치</strong>로 값이 갈립니다.
+      15·16등급을 속성별·구간별로 모았습니다. <strong>즉시구입 매물</strong> 기준이고, 가장 싼 10건의 중앙값입니다.
+    </p>
+  </section>
+
+  <div
+    class="tb"
+    data-waystone
+    data-prices={WAYSTONE.prices}
+    data-warn={WAYSTONE.warnHours}
+    data-bad={WAYSTONE.badHours}
+  >
+    <div class="tb-veil" data-veil>
+      <div class="bar"><i></i></div>
+      <div data-veil-note>시세 불러오는 중</div>
+    </div>
+
+    <div data-app hidden>
+      <p class="tb-alert" data-alert hidden></p>
+      <div class="tb-status" data-status></div>
+      <div class="tb-bar">
+        <div class="seg" data-seg="cur" aria-label="화폐 단위">
+          <button type="button" data-v="ch">카오스</button>
+          <button type="button" data-v="ex">엑잘</button>
+          <button type="button" data-v="div">디바인</button>
+        </div>
+      </div>
+      <div class="tb-scroll">
+        <table class="tb-table">
+          <thead data-head></thead>
+          <tbody data-rows></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <AdSlot slot="" />
+
+  <section class="guide">
+    <h2>이 표를 읽는 법</h2>
+    <dl class="faq">
+      <dt>속성이 무엇인가요</dt>
+      <dd>
+        경로석에 찍힌 <strong>아이템 희귀도 +28%</strong>, <strong>무리 규모 +25%</strong> 같은 수치입니다.
+        경로석의 옵션 줄은 전부 몬스터를 세게 만드는 위험 옵션이라 값의 근거가 되지 못합니다.
+        사는 사람이 보는 것은 속성 수치입니다.
+      </dd>
+
+      <dt>구간은 '이 값 이상' 입니다</dt>
+      <dd>
+        "몬스터 효율 70%+" 는 효율이 70% 이상인 매물만 골라 본 값입니다. 그 속성이 아예 없는
+        경로석은 이 검색에서 빠집니다. 숫자를 누르면 그 검색이 거래소에서 열립니다.
+      </dd>
+
+      <dt>등급마다 구간이 다릅니다</dt>
+      <dd>
+        같은 속성이라도 15등급이 16등급보다 높게 굴러갑니다. 아이템 희귀도 90%, 무리 규모 55%,
+        출현 확률 160% 는 15등급에만 있습니다. 그 등급에 없는 구간은 흐린 <span class="ws-off">-</span> 로 둡니다.
+      </dd>
+
+      <dt>속성 두 개가 같이 높은 경로석은요</dt>
+      <dd>
+        거의 없습니다. 효율·몬스터 희귀도·아이템 희귀도·무리 규모는 높은 값에서 서로 붙지 않습니다
+        (15등급 효율 70%+ 이면서 몬스터 희귀도 70%+ 인 매물은 0건입니다). 그래서 경로석 값은
+        <strong>가장 높이 굴러간 속성 하나</strong>로 거의 정해집니다. 출현 확률만 다른 속성과 같이 붙습니다.
+      </dd>
+
+      <dt>매물 수가 10,000 이면</dt>
+      <dd>거래소가 그쯤에서 세다 맙니다. 실제로는 더 많습니다 — 흔한 구간이라는 뜻입니다.</dd>
+
+      <dt>값은 언제 바뀌나요</dt>
+      <dd>
+        수집기가 거래소 요청 한도 안에서 구간을 하나씩 돌며 모읍니다. 서판 시세와 번갈아 돌기
+        때문에 같은 구간은 몇 시간마다 다시 봅니다. 수집이 멈추면 표 위에 경고가 뜹니다.
+      </dd>
+    </dl>
+  </section>
+
+  <AdSlot slot="" />
+</Base>
+
+<script>
+  import { mount } from "../../lib/waystone/ui.js";
+  mount(document.querySelector("[data-waystone]"));
+</script>
