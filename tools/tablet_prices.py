@@ -59,12 +59,28 @@ PUBLISH_EVERY = 1800    # 30분마다, 바뀐 게 있으면 올린다
 BRANCH = "data"
 WHO = ("tablet-collector", "tablet-collector@colding.xyz")
 
-# 시세를 엑잘로 환산할 화폐. 한 번에 다섯까지 물어볼 수 있다(여섯부터 400). 서판
-# 값표는 거의 이 안이고 — 싼 서판은 바알로 많이 건다 — 여기 없는 화폐로 걸린 매물은
-# 값을 못 매기고 건너뛴다(몇 개를 세었는지는 n 으로 같이 싣는다).
-RATE_WANT = ["divine", "chaos", "vaal", "annul", "regal"]
-RATE_JUNK = 3.0     # 가장 싼 호가의 이 배를 넘는 건 허수로 보고 버린다
-RATE_DEEP = 5       # 남은 호가가 이만큼은 돼야 중앙값을 믿는다
+# 매물 값을 엑잘로 맞출 화폐와, 그 값을 어느 환전 장에서 읽는가.
+#
+# 환전 장은 허수 호가투성이다. '1엑잘에 카오스 1개' 처럼 1:1 로 걸어 둔 매물이 바닥에
+# 박혀 있기도 하고(카오스 실제 값은 40엑잘쯤), 반대로 '1개 500엑잘' 도 흔하다. 그래서
+# 가장 싼 호가 하나를 믿지 않고, 싼 쪽부터 호가 세 건이 15% 안에 모인 첫 자리를
+# 시장가로 본다. 싸게 걸린 진짜 매물은 금방 팔려 나가므로 시세는 바닥 근처에 모이고,
+# 허수는 혼자 떠 있다.
+#
+#   디바인  엑잘 장에서     319 · 320 · 330 → 320엑잘
+#   카오스  디바인 장에서   0.118 · 0.124 · 0.125 디바인 → 41엑잘. 엑잘 장은 호가가
+#           다섯 건뿐이고 1:1 허수가 바닥에 있어 모이는 자리가 없다.
+#   바알    엑잘 장 바닥값. 호가가 3 · 10 · 30 · 100 · 500 이라 모이는 자리가 없다.
+#           3엑잘은 옛 수집기의 2.4 와 같은 자릿수이고, 바알은 싸서 허수 바닥을 집어도
+#           크게 틀리지 않는다 — 비싼 화폐에 바닥값을 쓰면 카오스처럼 40배 틀린다.
+#
+# 여기 없는 화폐(소멸·제왕 등)로 걸린 매물은 건너뛰고, 몇 개를 세었는지는 n 으로
+# 싣는다. 서판 매물에서는 아직 못 봤다.
+RATES = {
+    "divine": ("exalted", "cluster"),
+    "chaos": ("divine", "cluster"),
+    "vaal": ("exalted", "floor"),      # 모이는 자리가 없으면 바닥값
+}
 
 
 # ── 거래소 ───────────────────────────────────────────────────────────────
@@ -196,38 +212,51 @@ def look(api, mod, base, band, rates):
             round(statistics.median(ex), 3) if ex else None, qid]
 
 
-def money(api, prev):
-    """화폐 하나가 몇 엑잘인가.
+def cluster(vals, n=3, tol=1.15):
+    """싼 쪽부터 호가 n 건이 tol 배 안에 모인 첫 자리의 중앙값. 없으면 None."""
+    vals = sorted(vals)
+    for i in range(len(vals) - n + 1):
+        if vals[i + n - 1] <= vals[i] * tol:
+            return statistics.median(vals[i:i + n])
+    return None
 
-    디바인·카오스는 환전 시장이 두꺼워 싸게 파는 쪽 열 건의 중앙값을 쓴다 — 맨 아래
-    한 건은 미끼일 때가 있다. 바알·소멸·제왕은 엑잘 환전 시장이 얇다(바알은 호가가
-    다섯 건인데 '1개 500엑잘' 이 섞여 있다). 얇은 장에서 중앙값을 잡으면 허수가 그대로
-    값이 되므로, 가장 싼 호가 하나를 바닥값으로 쓴다. 바알 1개를 3엑잘로 보게 되는데,
-    옛 수집기가 매기던 값(2.4)과 같은 자릿수다 — 싼 서판의 차례를 가리는 데는 이 정도면
-    되고, 비싼 서판은 어차피 엑잘·디바인으로 걸린다."""
-    out = dict(prev, exalted=1.0)
-    try:
-        d = api.call(f"/api/trade2/exchange/poe2/{urllib.parse.quote(api.league)}",
-                     {"query": {"status": {"option": "online"}, "have": ["exalted"],
-                                "want": RATE_WANT},
-                      "sort": {"have": "asc"}, "engine": "new"}, "exchange")
-    except RuntimeError as e:
-        api.log(f"  환산 실패 — {e} (지난 값을 쓴다)")
-        return out
 
+def book(api, have, want):
+    """환전 장 하나 → {화폐: [그 화폐 1개가 have 로 몇 개인가, ...]}."""
+    d = api.call(f"/api/trade2/exchange/poe2/{urllib.parse.quote(api.league)}",
+                 {"query": {"status": {"option": "online"}, "have": [have], "want": want},
+                  "sort": {"have": "asc"}, "engine": "new"}, "exchange")
     seen = {}
     for row in (d.get("result") or {}).values():
         for o in ((row or {}).get("listing") or {}).get("offers") or []:
             give, get = o.get("exchange") or {}, o.get("item") or {}
             if give.get("amount") and get.get("amount"):
                 seen.setdefault(get.get("currency"), []).append(give["amount"] / get["amount"])
-    for name, vals in seen.items():
-        vals = sorted(vals)
-        vals = [v for v in vals if v <= vals[0] * RATE_JUNK][:10]
-        if len(vals) >= RATE_DEEP:
-            out[name] = round(statistics.median(vals), 3)
-        elif vals:
-            out[name] = round(vals[0], 3)       # 얇은 장 — 바닥값
+    return seen
+
+
+def money(api, prev):
+    """화폐 하나가 몇 엑잘인가(RATES 위 주석). 못 읽은 화폐는 지난 값을 그대로 둔다."""
+    out = dict(prev, exalted=1.0)
+    # 엑잘 장이 먼저다 — 디바인 장에서 읽은 값은 디바인 시세를 곱해야 엑잘이 된다.
+    for have in ("exalted", "divine"):
+        want = [c for c, (h, _) in RATES.items() if h == have]
+        if not want or have not in out:
+            continue
+        try:
+            seen = book(api, have, want)
+        except RuntimeError as e:
+            api.log(f"  환산({have} 장) 실패 — {e} (지난 값을 쓴다)")
+            continue
+        for c in want:
+            vals = seen.get(c) or []
+            v = cluster(vals)
+            if v is None and RATES[c][1] == "floor" and vals:
+                v = min(vals)
+            if v is None:
+                api.log(f"  환산({c}) 모이는 호가가 없다 — 지난 값을 쓴다")
+                continue
+            out[c] = round(v * out[have], 3)
     return out
 
 
