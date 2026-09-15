@@ -229,7 +229,31 @@ launchctl bootout gui/$(id -u)/xyz.colding.tablet-collector         # 내리기
 ```
 
 **수집기는 한 대만 돈다.** 게시가 부모 없는 강제 푸시라, 두 대가 돌면 서로 덮어쓰고
-값이 왔다 갔다 한다. 기계를 옮길 때는 새 기계를 `--no-push` 로 채운 뒤 옛 기계를 내린다.
+값이 왔다 갔다 한다.
+
+**기계를 옮기려면** 옛 기계를 먼저 내린다. 겹쳐 돌리지 않는 게 핵심이다.
+
+```bash
+# 1) 옛 맥에서 내린다
+launchctl bootout gui/$(id -u)/xyz.colding.tablet-collector
+
+# 2) 새 맥에서 — 저장소를 받고 git push 가 되는지부터 확인한다(수집기가 data 에 푸시한다)
+git clone https://github.com/chomg88/colding-poe-ko2en.git && cd colding-poe-ko2en
+git ls-remote origin >/dev/null && echo "자격증명 OK"
+
+# 3) 시험 — 안 올리고 다섯 키만. 씨앗을 받아 오는지 로그로 확인한다
+python3 tools/tablet_prices.py --once --no-push --limit 5
+
+# 4) 상시로 띄운다. plist 안의 경로 세 곳(ProgramArguments · WorkingDirectory ·
+#    StandardOutPath/StandardErrorPath)과 HOME 을 새 맥 경로로 고친 뒤
+cp tools/xyz.colding.tablet-collector.plist ~/Library/LaunchAgents/
+launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/xyz.colding.tablet-collector.plist
+tail -f .cache/tablet/collector.log
+```
+
+상태 파일(`.cache/tablet/prices-state.json`)은 옮기지 않아도 된다. 없으면 `data` 브랜치에
+올라가 있는 값을 서판·경로석 **둘 다** 씨앗으로 받아 이어서 돈다. 씨앗을 안 받으면 새 기계의
+첫 게시가 거의 빈 파일로 브랜치를 덮는다 — 두 파일을 한 트리에 같이 올리기 때문이다.
 
 진행 상태는 `.cache/tablet/prices-state.json` 에 쌓인다(git 제외). 이 파일이 없으면
 `data` 브랜치에 올라가 있는 값을 씨앗으로 받아 이어서 돈다 — 새 기계에서 처음 돌려도

@@ -402,20 +402,41 @@ def seed_rates():
         return {"exalted": 1.0}
 
 
+def seed_ways(league):
+    """경로석도 올라가 있는 값을 씨앗으로 받는다. 카탈로그가 없으니 리그만 맞으면 된다.
+
+    이걸 안 하면 새 기계의 첫 게시가 거의 빈 waystone-prices.json 으로 브랜치를 덮는다 —
+    두 파일을 한 트리에 같이 올리기 때문에, 한쪽이 비어 있어도 그대로 올라간다."""
+    try:
+        subprocess.run(["git", "fetch", "-q", "origin", BRANCH], cwd=ROOT, check=True,
+                       capture_output=True, text=True)
+        d = json.loads(subprocess.run(["git", "show", f"origin/{BRANCH}:waystone-prices.json"],
+                                      cwd=ROOT, check=True, capture_output=True, text=True).stdout)
+    except (subprocess.CalledProcessError, ValueError) as e:
+        print(f"  경로석 씨앗 없음 — 처음부터 모은다 ({str(e)[:50]})")
+        return {}
+    if d.get("league") != league:
+        print(f"  올라가 있는 경로석 값은 {d.get('league')} — 처음부터 모은다")
+        return {}
+    print(f"  올라가 있는 경로석 값 {len(d.get('b') or {})}키를 씨앗으로 받았다")
+    return d.get("b") or {}
+
+
 def load_state(league, name):
     """→ (서판 값, 경로석 값). 경로석은 카탈로그가 없어 리그만 맞으면 이어서 쓴다."""
     try:
         with open(STATE, encoding="utf-8") as f:
             s = json.load(f)
         if s.get("league") == league:
+            w = s.get("w") or seed_ways(league)
             if s.get("catalog") == name:
-                return s.get("b") or {}, s.get("w") or {}
+                return s.get("b") or {}, w
             print("  카탈로그가 바뀌었다 — 서판 값을 처음부터 다시 모은다")
-            return {}, s.get("w") or {}
+            return {}, w
         print("  리그가 바뀌었다 — 값을 처음부터 다시 모은다")
-        return {}, {}
+        return {}, seed_ways(league)
     except (OSError, ValueError):
-        return seed(league, name), {}
+        return seed(league, name), seed_ways(league)
 
 
 def save_state(league, name, b, w):
