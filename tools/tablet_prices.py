@@ -77,6 +77,8 @@ WHO = ("tablet-collector", "tablet-collector@colding.xyz")
 #   바알    엑잘 장 바닥값. 호가가 3 · 10 · 30 · 100 · 500 이라 모이는 자리가 없다.
 #           3엑잘은 옛 수집기의 2.4 와 같은 자릿수이고, 바알은 싸서 허수 바닥을 집어도
 #           크게 틀리지 않는다 — 비싼 화폐에 바닥값을 쓰면 카오스처럼 40배 틀린다.
+#           그 바닥에 1:1 허수가 끼어(1 · 3 · 10 · 100) 1엑잘로 잡힌 적이 있어 book 이
+#           1:1 호가를 뺀다. 카오스·디바인 장은 1:1 허수뿐이고 바알을 내는 장은 비어 있다.
 #
 # 여기 없는 화폐(소멸·제왕 등)로 걸린 매물은 건너뛰고, 몇 개를 세었는지는 n 으로
 # 싣는다. 서판 매물에서는 아직 못 봤다.
@@ -91,8 +93,9 @@ RATES = {
 
 # 환율끼리 맞춰 본다. (위, 아래, 최소, 최대) — 1 위 화폐가 아래 화폐 몇 개인가가 이
 # 범위를 벗어나면 허수 묶음을 집은 것이다. 지금 1 디바인은 8~10카오스이고, 허수를 집었던
-# 값(1 · 0.0001 · 320)은 전부 밖이다. 틀린 쪽은 얇은 장에서 읽은 아래 화폐로 본다.
-SANE = [("divine", "chaos", 3, 40)]
+# 값(1 · 0.0001 · 320)은 전부 밖이다. 1 카오스는 13바알쯤이고(40 ÷ 3), 1엑잘로 잡힌 바알은
+# 40이라 밖이다. 틀린 쪽은 얇은 장에서 읽은 아래 화폐로 본다.
+SANE = [("divine", "chaos", 3, 40), ("chaos", "vaal", 5, 30)]
 
 
 # ── 거래소 ───────────────────────────────────────────────────────────────
@@ -248,7 +251,9 @@ def book(api, have, want):
     for row in (d.get("result") or {}).values():
         for o in ((row or {}).get("listing") or {}).get("offers") or []:
             give, get = o.get("exchange") or {}, o.get("item") or {}
-            if give.get("amount") and get.get("amount"):
+            # 1:1 호가는 허수다. 값이 비슷한 화폐 짝이 없는데(엑잘 1 · 바알 3 · 카오스 40 ·
+            # 디바인 400) 장마다 바닥에 1:1 이 박혀 있다.
+            if give.get("amount") and get.get("amount") and give["amount"] != get["amount"]:
                 seen.setdefault(get.get("currency"), []).append(give["amount"] / get["amount"])
     return seen
 
