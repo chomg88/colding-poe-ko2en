@@ -260,8 +260,14 @@ def money(api, prev):
             v = cluster(vals)
             if v is None and RATES[c][1] == "floor" and vals:
                 v = min(vals)
+            if v is None and len(vals) >= 3:
+                # 장이 얇아 모이는 자리가 없을 때. 바닥값은 못 쓴다 — 카오스가 1엑잘로 잡혀
+                # 40분의 1로 환산된 적이 있다. 싼 세 건의 중앙값이면 그 사고(1·40·41)에서도
+                # 40이 나오고, 지금처럼 호가가 380·400·500 셋뿐일 때도 400을 집는다.
+                v = statistics.median(sorted(vals)[:3])
+                api.log(f"  환산({c}) 모이는 자리가 없다 — 싼 세 건의 중앙값 {v:g}")
             if v is None:
-                api.log(f"  환산({c}) 모이는 호가가 없다 — 지난 값을 쓴다")
+                api.log(f"  환산({c}) 호가가 모자란다({len(vals)}건) — 지난 값을 쓴다")
                 continue
             out[c] = round(v * out[have], 3)
     return out
@@ -385,6 +391,17 @@ def seed(league, name):
     return d.get("b") or {}
 
 
+def seed_rates():
+    """지난 게시 파일의 환율로 시작한다. 빈 표로 시작했다가 환전 장을 한 번 못 읽으면
+    디바인·카오스로 걸린 매물이 통째로 안 세어져, 다시 읽을 때까지(한 시간) 모은 값이 전부
+    '매물 없음' 이 된다. 실제로 수집기를 다시 띄우다 그렇게 됐다."""
+    try:
+        with open(OUT, encoding="utf-8") as f:
+            return dict(json.load(f).get("rates") or {}, exalted=1.0)
+    except (OSError, ValueError):
+        return {"exalted": 1.0}
+
+
 def load_state(league, name):
     """→ (서판 값, 경로석 값). 경로석은 카탈로그가 없어 리그만 맞으면 이어서 쓴다."""
     try:
@@ -425,12 +442,16 @@ def main():
     b, w = load_state(cat["league"], name)
     print(f"{cat['league']} · 카탈로그 {name} · 이미 본 키 서판 {len(b)} · 경로석 {len(w)}")
 
-    rates, rates_at, last_pub, dirty = {"exalted": 1.0}, 0.0, 0.0, False
+    rates, rates_at, last_pub, dirty = seed_rates(), 0.0, 0.0, False
     while True:
         if time.time() - rates_at > RATE_TTL:
-            rates, rates_at = money(api, rates), time.time()
+            rates = money(api, rates)
+            missing = [c for c in RATES if c not in rates]
+            # 못 읽은 화폐가 있으면 한 시간이 아니라 5분 뒤에 다시 본다
+            rates_at = time.time() - RATE_TTL + 300 if missing else time.time()
             print("  환산: " + " · ".join(f"1 {k} = {v} 엑잘"
-                                        for k, v in rates.items() if k != "exalted"))
+                                        for k, v in rates.items() if k != "exalted")
+                  + (f" · 못 읽음 {','.join(missing)} — 5분 뒤 다시" if missing else ""))
 
         rep, deep = plan(cat, b)
         # 오래 안 본 것부터. 아직 한 번도 안 본 키가 먼저다.
