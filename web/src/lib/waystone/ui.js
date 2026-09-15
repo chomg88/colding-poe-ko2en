@@ -43,8 +43,11 @@ export function mount(el) {
   let P = null;
   let perr = "";
 
-  const rate = () => (S.cur === "div" ? P?.rates?.divine : S.cur === "ch" ? P?.rates?.chaos : 1) || 1;
-  const unitName = () => (S.cur === "div" ? "디바인" : S.cur === "ch" ? "카오스" : "엑잘");
+  /* 고른 화폐의 환율이 파일에 없으면 엑잘로 보인다 — 수집기는 어긋난 환율을 빼고 올린다.
+     단위 이름도 같이 따라가야 엑잘 값에 '카오스' 가 붙지 않는다(서판 화면의 inDiv 와 같다). */
+  const cur = () => (S.cur === "div" && P?.rates?.divine ? "div" : S.cur === "ch" && P?.rates?.chaos ? "ch" : "ex");
+  const rate = () => ({ div: P?.rates?.divine, ch: P?.rates?.chaos })[cur()] || 1;
+  const unitName = () => ({ div: "디바인", ch: "카오스" })[cur()] || "엑잘";
   function money(ex) {
     if (ex == null) return "-";
     const v = ex / rate();

@@ -69,19 +69,30 @@ WHO = ("tablet-collector", "tablet-collector@colding.xyz")
 # 허수는 혼자 떠 있다.
 #
 #   디바인  엑잘 장에서     319 · 320 · 330 → 320엑잘
-#   카오스  디바인 장에서   0.118 · 0.124 · 0.125 디바인 → 41엑잘. 엑잘 장은 호가가
-#           다섯 건뿐이고 1:1 허수가 바닥에 있어 모이는 자리가 없다.
+#   카오스  카오스를 내고 디바인을 사는 장에서  10 · 10 · 11 카오스 → 1 디바인이
+#           10카오스, 400엑잘 ÷ 10 = 40엑잘. 디바인을 내고 카오스를 사는 장은 호가가
+#           전부 허수가 됐다(0.25 · 1 · 1 · 1 · 5 디바인, 2026-09-15). 1:1 묶음이 모이는
+#           자리로 잡혀 카오스가 400엑잘로, 한 번은 380만 엑잘로 환산됐다. 엑잘 장은
+#           호가가 두세 건뿐이고 1:1 허수가 바닥에 있다.
 #   바알    엑잘 장 바닥값. 호가가 3 · 10 · 30 · 100 · 500 이라 모이는 자리가 없다.
 #           3엑잘은 옛 수집기의 2.4 와 같은 자릿수이고, 바알은 싸서 허수 바닥을 집어도
 #           크게 틀리지 않는다 — 비싼 화폐에 바닥값을 쓰면 카오스처럼 40배 틀린다.
 #
 # 여기 없는 화폐(소멸·제왕 등)로 걸린 매물은 건너뛰고, 몇 개를 세었는지는 n 으로
 # 싣는다. 서판 매물에서는 아직 못 봤다.
+#
+# 화폐 → (기준 화폐, 읽는 법, 뒤집나). 뒤집으면 이 화폐를 내고 기준 화폐를 사는 장을
+# 읽는다. 그 장의 호가는 '기준 화폐 1개가 이 화폐 몇 개' 라 나눠서 쓴다.
 RATES = {
-    "divine": ("exalted", "cluster"),
-    "chaos": ("divine", "cluster"),
-    "vaal": ("exalted", "floor"),      # 모이는 자리가 없으면 바닥값
+    "divine": ("exalted", "cluster", False),
+    "chaos": ("divine", "cluster", True),
+    "vaal": ("exalted", "floor", False),       # 모이는 자리가 없으면 바닥값
 }
+
+# 환율끼리 맞춰 본다. (위, 아래, 최소, 최대) — 1 위 화폐가 아래 화폐 몇 개인가가 이
+# 범위를 벗어나면 허수 묶음을 집은 것이다. 지금 1 디바인은 8~10카오스이고, 허수를 집었던
+# 값(1 · 0.0001 · 320)은 전부 밖이다. 틀린 쪽은 얇은 장에서 읽은 아래 화폐로 본다.
+SANE = [("divine", "chaos", 3, 40)]
 
 
 # ── 거래소 ───────────────────────────────────────────────────────────────
@@ -242,34 +253,52 @@ def book(api, have, want):
     return seen
 
 
+def odd(rates):
+    """SANE 을 벗어난 화폐(짝의 아래쪽) 목록."""
+    return [lo for hi, lo, a, z in SANE
+            if hi in rates and lo in rates and not a <= rates[hi] / rates[lo] <= z]
+
+
 def money(api, prev):
-    """화폐 하나가 몇 엑잘인가(RATES 위 주석). 못 읽은 화폐는 지난 값을 그대로 둔다."""
+    """화폐 하나가 몇 엑잘인가(RATES 위 주석). 못 읽었거나 SANE 을 벗어난 화폐는 지난 값을
+    그대로 두고, 지난 값마저 어긋나면 뺀다 — 틀린 환율로 세느니 그 화폐로 걸린 매물을
+    안 세는 게 낫다. 380만 엑잘 카오스로 센 서판 값은 한 바퀴 내내 페이지를 망친다."""
     out = dict(prev, exalted=1.0)
-    # 엑잘 장이 먼저다 — 디바인 장에서 읽은 값은 디바인 시세를 곱해야 엑잘이 된다.
-    for have in ("exalted", "divine"):
-        want = [c for c, (h, _) in RATES.items() if h == have]
-        if not want or have not in out:
-            continue
+    books = {}
+    for c, (base, _, flip) in RATES.items():
+        have, want = (c, base) if flip else (base, c)
+        books.setdefault(have, []).append(want)
+    for have, want in list(books.items()):
         try:
-            seen = book(api, have, want)
+            books[have] = book(api, have, want)
         except RuntimeError as e:
             api.log(f"  환산({have} 장) 실패 — {e} (지난 값을 쓴다)")
+            books[have] = None
+    # RATES 순서대로 — 카오스는 디바인 값이 있어야 엑잘이 된다.
+    for c, (base, how, flip) in RATES.items():
+        have, want = (c, base) if flip else (base, c)
+        if books[have] is None or base not in out:
             continue
-        for c in want:
-            vals = seen.get(c) or []
-            v = cluster(vals)
-            if v is None and RATES[c][1] == "floor" and vals:
-                v = min(vals)
-            if v is None and len(vals) >= 3:
-                # 장이 얇아 모이는 자리가 없을 때. 바닥값은 못 쓴다 — 카오스가 1엑잘로 잡혀
-                # 40분의 1로 환산된 적이 있다. 싼 세 건의 중앙값이면 그 사고(1·40·41)에서도
-                # 40이 나오고, 지금처럼 호가가 380·400·500 셋뿐일 때도 400을 집는다.
-                v = statistics.median(sorted(vals)[:3])
-                api.log(f"  환산({c}) 모이는 자리가 없다 — 싼 세 건의 중앙값 {v:g}")
-            if v is None:
-                api.log(f"  환산({c}) 호가가 모자란다({len(vals)}건) — 지난 값을 쓴다")
-                continue
-            out[c] = round(v * out[have], 3)
+        vals = books[have].get(want) or []
+        v = cluster(vals)
+        if v is None and how == "floor" and vals:
+            v = min(vals)
+        if v is None and len(vals) >= 3:
+            # 장이 얇아 모이는 자리가 없을 때. 바닥값은 못 쓴다 — 카오스가 1엑잘로 잡혀
+            # 40분의 1로 환산된 적이 있다. 싼 세 건의 중앙값이면 그 사고(1·40·41)에서도
+            # 40이 나오고, 지금처럼 호가가 380·400·500 셋뿐일 때도 400을 집는다.
+            v = statistics.median(sorted(vals)[:3])
+            api.log(f"  환산({c}) 모이는 자리가 없다 — 싼 세 건의 중앙값 {v:g}")
+        if v is None:
+            api.log(f"  환산({c}) 호가가 모자란다({len(vals)}건) — 지난 값을 쓴다")
+            continue
+        rate = round(out[base] / v if flip else v * out[base], 3)
+        if c in odd(dict(out, **{c: rate})):
+            api.log(f"  환산({c}) {rate:g}엑잘은 {base} 와 안 맞는다 — 지난 값을 쓴다")
+            continue
+        out[c] = rate
+    for c in odd(out):
+        api.log(f"  환산({c}) 지난 값 {out.pop(c):g}엑잘도 안 맞는다 — 이 화폐 매물은 안 센다")
     return out
 
 
@@ -394,12 +423,18 @@ def seed(league, name):
 def seed_rates():
     """지난 게시 파일의 환율로 시작한다. 빈 표로 시작했다가 환전 장을 한 번 못 읽으면
     디바인·카오스로 걸린 매물이 통째로 안 세어져, 다시 읽을 때까지(한 시간) 모은 값이 전부
-    '매물 없음' 이 된다. 실제로 수집기를 다시 띄우다 그렇게 됐다."""
+    '매물 없음' 이 된다. 실제로 수집기를 다시 띄우다 그렇게 됐다.
+
+    SANE 을 벗어난 값은 버린다 — 허수를 집었던 환율을 씨앗으로 이어받으면 환전 장을
+    다시 못 읽는 동안 그 값으로 계속 센다."""
     try:
         with open(OUT, encoding="utf-8") as f:
-            return dict(json.load(f).get("rates") or {}, exalted=1.0)
+            rates = dict(json.load(f).get("rates") or {}, exalted=1.0)
     except (OSError, ValueError):
         return {"exalted": 1.0}
+    for c in odd(rates):
+        print(f"  지난 환율 {c} {rates.pop(c):g}엑잘은 안 맞는다 — 버린다")
+    return rates
 
 
 def seed_ways(league):
