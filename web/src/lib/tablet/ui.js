@@ -88,13 +88,9 @@ export function mount(el) {
   }
   const rowRx = (m) => fragments().row.get(`${m.base}\u0000${m.text}`) || "";
 
-  /** 통합 정규식에 넣을 항. 옵션마다 '기준을 넘는 가장 싼 구간' 을 고른다 — 그 아래는
-      기준에 못 미치고, 그 위는 굳이 좁힐 것 없이 매물을 놓친다. */
-  function hitRx(r) {
-    const ok = r.bands.filter((b) => b.t != null && b.med != null && b.med >= S.th);
-    const band = ok.length ? Math.min(...ok.map((b) => b.t)) : null;
-    return hitTerm(r.m, band, fragments().all);
-  }
+  /** 통합 정규식에 넣을 항. 수치는 안 건다 — 그 옵션이 붙었는지만 보면 되고, 무엇을
+      담을지는 표에 걸린 기준 필터가 이미 정한다. */
+  const hitRx = (r) => hitTerm(r.m, fragments().all);
 
   function join() {
     const b = P?.b || {};
@@ -261,7 +257,7 @@ export function mount(el) {
     if (!parts.length) return;
     const one = parts.length === 1;
     box.innerHTML = `<span class="tb-combo-lab" title="지금 표에 보이는 옵션 ${terms.length}개를 하나로 묶습니다. `
-      + `옵션마다 기준 ${S.th}엑잘을 넘는 가장 싼 수치로 겁니다">통합 정규식</span>`
+      + `수치는 걸지 않습니다 — 그 옵션이 붙었는지만 봅니다">통합 정규식</span>`
       + parts.map((p, i) => `<button type="button" class="tb-rx" data-rx="${esc(p)}"
           title="${esc(`${p.length}자 — ${p}`)}">${one ? "복사" : i + 1} <b>${p.length}자</b></button>`).join("")
       + (one ? "" : `<span class="tb-dim">${parts.length}조각으로 나눠 붙여 넣으세요</span>`);

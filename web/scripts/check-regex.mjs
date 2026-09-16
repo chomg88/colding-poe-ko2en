@@ -8,6 +8,7 @@
    복사된다. 그러면 창고의 경로석이 전부 걸린다. */
 import { band, term, forQuery, MAX } from "../src/lib/waystone/regex.js";
 import * as T from "../src/lib/tablet/regex.js";
+import { KNOWN } from "../src/lib/tablet/known.js";
 import { readFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { gunzipSync } from "node:zlib";
@@ -70,28 +71,11 @@ const fail = (msg) => { console.log(`  틀림 — ${msg}`); bad++; };
 // 조용히 다른 옵션까지 잡는다 — 값은 멀쩡한데 검색만 틀린다. 그래서 여기서 지킨다.
 console.log("\n서판");
 
-// 4. bandRx(a,b) — 그 범위 안의 값만 잡는가
-{
-  let n = 0;
-  for (let a = 1; a <= 120; a += 1)
-    for (const b of [a, a + 1, a + 7, a + 30, a + 95]) {
-      const rx = new RegExp(`^${T.bandRx(a, b)}$`, "u");
-      for (let v = 0; v <= 300; v++, n++)
-        if (rx.test(String(v)) !== (v >= a && v <= b) && bad < 5)
-          fail(`bandRx(${a},${b}) 에 ${v} — ${T.bandRx(a, b)}`);
-    }
-  console.log(`  bandRx() ${n.toLocaleString()}쌍 대입${bad ? "" : " 통과"}`);
-}
-
-// 5. 카탈로그의 문구마다 조각이 자기 것에만 맞는가
+// 5. 카탈로그의 문구마다 조각이 있는가, 그 조각이 남의 옵션까지 잡지는 않는가
 //
-//    감독관 서판의 이 넷은 원리적으로 안 갈린다 — '금고 #개 추가 등장'(범위 1~2)과
-//    '금고 1개 추가 등장'(존재형)은 수치가 1일 때 게임 글월이 글자까지 같다. 숫자가
-//    2면 갈린다. 이름을 박아 두었으니 여기 없는 것이 새로 생기면 실패한다.
-const TWINS = new Set([
-  "지도에 금고 #개 추가 등장", "지도에 성소 #개 추가 등장",
-  "지도에 에센스 #개 추가 등장", "지도에 아즈메리 혼백 #개 추가 등장",
-]);
+//    조각은 두 곳에서 온다. known.js 의 손질 표(대부분 서판 **이름 줄**의 접사 이름을
+//    노린다)와, 표에 없을 때 문구에서 뽑는 생성기다. 그래서 '자기 문구에 맞는가' 는
+//    생성기 쪽에만 물을 수 있다 — 이름 줄 조각은 옵션 문구에 아예 없다.
 {
   const root = new URL("../..", import.meta.url).pathname;
   const files = globSync("web/public/data/tablet-catalog-*.json.gz", { cwd: root });
@@ -103,37 +87,51 @@ const TWINS = new Set([
     const at = (t, d) => t.replace(/#/g, d).replace(/\s+/g, " ").trim();
     const t0 = performance.now();
     const frag = new Map(all.map((t) => [t, T.compact(t, all)]));
-    console.log(`  문구 ${all.length}개 · 조각 계산 ${(performance.now() - t0).toFixed(0)}ms`);
+    const fromTable = all.filter((t) => KNOWN.has(t)).length;
+    console.log(`  문구 ${all.length}개 · 표에서 ${fromTable} · 생성기가 ${all.length - fromTable}`
+      + ` · ${(performance.now() - t0).toFixed(0)}ms`);
 
-    let twins = 0;
+    // 조각이 겹치면 통합 정규식에서 한 항이 남의 옵션 노릇을 한다
+    const seen = new Map();
+    for (const [t, f] of frag) {
+      if (seen.has(f)) fail(`조각 '${f}' 가 둘이다 — '${t}' 와 '${seen.get(f)}'`);
+      seen.set(f, t);
+    }
+
     for (const [t, f] of frag) {
       const rx = new RegExp(f, "u");
-      for (const d of ["7", "17", "170"])
-        if (!rx.test(at(t, d))) fail(`${t} — 조각 ${f} 가 자기 문구(${d})에 안 맞는다`);
+      // 생성기가 만든 것은 자기 문구에 맞아야 한다(한·두·세 자리 모두)
+      if (!KNOWN.has(t))
+        for (const d of ["7", "17", "170"])
+          if (!rx.test(at(t, d))) fail(`${t} — 생성 조각 ${f} 가 자기 문구(${d})에 안 맞는다`);
+      // 어느 쪽이든 남의 문구를 잡으면 안 된다
       const caught = all.filter((o) => o !== t && ["7", "17", "170"].some((d) => rx.test(at(o, d))));
-      if (caught.length) {
-        if (TWINS.has(t)) twins++;
-        else fail(`${t} — 조각 ${f} 가 '${caught[0]}' 까지 잡는다`);
-      }
+      if (caught.length) fail(`${t} — 조각 ${f} 가 '${caught[0]}' 까지 잡는다`);
     }
+    // 서판에는 옵션 말고도 늘 붙어 있는 줄이 있다. 조각이 여기 걸리면 그 종류가 통째로
+    // 걸린다 — 통합 정규식은 `|` 로 잇기 때문에 한 항이 표 전체를 무의미하게 만든다.
+    const ALWAYS = [
+      ...cat.bases.map((b) => b.type),
+      "아이템 종류: 서판", "아이템 희귀도: 마법", "잔여 사용 횟수: 10",
+      "지도 장치에 사용하여 인근 지도에 영향을 줍니다", "아이템 레벨: 79",
+    ];
+    for (const [t, f] of frag) {
+      const rx = new RegExp(f, "u");
+      const on = ALWAYS.filter((line) => rx.test(line));
+      if (on.length) fail(`${t} — 조각 ${f} 가 늘 붙는 줄('${on[0]}')에 걸린다`);
+    }
+
     const lens = [...frag.values()].map((f) => f.length).sort((a, b) => a - b);
     console.log(`  길이 중앙 ${lens[lens.length >> 1]}자 · 최대 ${lens.at(-1)}자`
-      + ` · 숫자로만 갈리는 쌍둥이 ${twins}개(예상 ${TWINS.size})`);
-    if (twins !== TWINS.size) fail(`쌍둥이가 ${twins}개다 — TWINS 목록(${TWINS.size})과 다르다`);
+      + `${bad ? "" : " · 겹침 없음 · 늘 붙는 줄에 안 걸림"}`);
 
-    // 6. 최악의 경우(기준 0, 옵션 전부)에도 조각이 250자를 안 넘는가
-    const terms = [...new Set(cat.mods.map((m) => T.hitTerm(m, m.bands[0] ?? null, all)))];
+    // 6. 최악의 경우(기준 0, 옵션 전부)에도 조각이 한도를 안 넘는가
+    const terms = [...new Set(cat.mods.map((m) => T.hitTerm(m, all)))];
     const parts = T.chunk(terms);
     const over = parts.filter((p) => p.length > T.MAX);
     console.log(`  통합 ${terms.length}항 → ${parts.length}조각 · 가장 긴 ${Math.max(...parts.map((p) => p.length))}자`);
     if (over.length) fail(`${over.length}조각이 ${T.MAX}자를 넘는다`);
 
-    // 7. 숫자를 삼킨 조각에 수치를 또 붙이지는 않는가 (붙이면 영영 안 맞는다)
-    for (const m of cat.mods) {
-      if (!m.range || !m.bands.length) continue;
-      const s2 = T.hitTerm(m, m.bands.at(-1), all);
-      if ((s2.match(/\\d\+/g) || []).length) fail(`${m.text} — 수치를 걸었는데 \\d+ 가 남았다: ${s2}`);
-    }
   }
 }
 

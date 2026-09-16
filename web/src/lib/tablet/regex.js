@@ -12,6 +12,8 @@
    그리는 일과 나눠 둔 까닭은 DOM 없이 불러 검증할 수 있어야 해서다 —
    web/scripts/check-regex.mjs. */
 
+import { KNOWN } from "./known.js";
+
 /** 정규식에서 뜻을 갖는 글자를 막는다. */
 export const esc = (s) => String(s).replace(/[\\^$.*+?()[\]{}|]/g, "\\$&");
 
@@ -56,6 +58,18 @@ function candidates(text) {
   return [...new Set(out)].sort((a, b) => a.length - b.length);
 }
 
+/* 서판이면 늘 붙어 있는 줄. 조각이 여기 걸리면 그 서판이 통째로 걸린다 — 통합 정규식은
+   `|` 로 잇기 때문에 그런 항 하나가 표 전체를 무의미하게 만든다.
+
+   실제로 밟았다. '지도에서 발견하는 아이템 희귀도 #% 증가' 의 조각으로 '템.희' 를 골랐는데,
+   마법 아이템이면 늘 있는 '아이템 희귀도: 마법' 에 걸렸다. 옵션 문구끼리만 겨루면 안 보인다.
+
+   서판 종류 이름(의식 서판 …)은 여기 없다 — 카탈로그에서 와야 해서 검증 쪽에서 본다. */
+const ALWAYS = [
+  "아이템 종류: 서판", "아이템 희귀도: 마법", "아이템 희귀도: 일반", "잔여 사용 횟수: 10",
+  "지도 장치에 사용하여 인근 지도에 영향을 줍니다", "아이템 레벨: 79",
+];
+
 /** 맞춰 볼 실제 글월. 숫자 자리에 한·두·세 자리를 다 넣어 본다 — 하나라도 떨어지면 버린다. */
 const targets = (text) =>
   ["7", "17", "170"].map((d) => text.replace(/#/g, d).replace(/\s+/g, " ").trim());
@@ -75,8 +89,13 @@ const SOLID = (c) => (c.match(/[가-힣A-Za-z0-9]/g) || []).length >= 2;
     others 는 '겨루는 상대' 다. 행 버튼은 같은 서판 종류의 옵션끼리, 통합 정규식은 종류를
     안 가리므로 전체 문구끼리 겨룬다 — 그래서 두 벌을 따로 만든다. */
 export function compact(text, others) {
+  // 손으로 맞춘 표가 먼저다(known.js). 생성기는 옵션 문구만 보므로 존재형과 범위형이 같은
+  // 글자로 찍히는 자리를 못 가르고, 그 자리는 표가 접사 이름으로 넘어가 있다.
+  const known = KNOWN.get(text);
+  if (known) return known[0];
+
   const mine = targets(text);
-  const foes = others.filter((o) => o !== text).flatMap(targets);
+  const foes = others.filter((o) => o !== text).flatMap(targets).concat(ALWAYS);
   for (const c of candidates(text)) {
     if (!SOLID(c)) continue;
     let rx;
@@ -86,30 +105,6 @@ export function compact(text, others) {
     return c;
   }
   return win(text.replace(/#/g, "\0").replace(/\s+/g, " ").trim());
-}
-
-/** 위아래가 정해진 정수 범위 → 정규식. 정수를 펼쳐 십의 자리로 묶는다.
-
-      bandRx(8, 12)   →  ([8-9]|1[0-2])
-      bandRx(70, 100) →  (7[0-9]|8[0-9]|9[0-9]|100)
-
-    경로석 것과 다른 점이 여기다. 카탈로그에 range.max 가 있어 위를 열어 둘 필요가 없다 —
-    짧고, 상한 위의 값을 잘못 집지도 않는다. */
-export function bandRx(min, max) {
-  const a = Math.max(0, Math.floor(min)), b = Math.max(a, Math.floor(max));
-  if (a === b) return String(a);
-  const byTen = new Map();
-  for (let v = a; v <= b; v++) {
-    const t = Math.floor(v / 10), o = v % 10;
-    byTen.set(t, [...(byTen.get(t) ?? []), o]);
-  }
-  const parts = [...byTen.entries()].map(([t, ones]) => {
-    const one = ones.length === 1;
-    if (t === 0) return one ? String(ones[0]) : `[${ones[0]}-${ones.at(-1)}]`;
-    if (ones.length === 10) return `${t}[0-9]`;
-    return one ? `${t}${ones[0]}` : `${t}[${ones[0]}-${ones.at(-1)}]`;
-  });
-  return parts.length === 1 ? parts[0] : `(${parts.join("|")})`;
 }
 
 /** 숫자 뒤에 붙는 단위. 카탈로그 문구가 이미 갖고 있으므로 짐작하지 않는다.
@@ -126,20 +121,13 @@ export function rowTerm(mod, others) {
   return `"${esc(mod.base)}" "${compact(mod.text, others)}"`;
 }
 
-/** 통합 정규식에 들어갈 한 항 — 조각 + 수치.
+/** 통합 정규식에 들어갈 한 항 — 조각 그대로다.
 
-    band 가 없거나 존재형이면 조각만이다. band 가 있으면 '그 값부터 상한까지' 를 잡는다.
-
-    조각이 숫자 자리를 이미 삼켰으면(`\d+` 가 들어 있으면) 뒤에 또 붙이지 않고 **그 자리에
-    끼워 넣는다.** 안 그러면 '지도에.금고.\d+개.추가.등장.*[1-2]개' 처럼 숫자를 두 번 찾는
-    정규식이 되어 영영 안 맞는다. 감독관 서판의 금고·성소·에센스·혼백이 이 경우다 — 같은
-    서판의 '… 1개 추가 등장'(존재형)과 글자가 겹쳐 조각만으로는 안 갈리고, 숫자가 갈라 준다. */
-export function hitTerm(mod, band, others) {
-  const frag = compact(mod.text, others);
-  if (band == null || !mod.range) return frag;
-  const n = bandRx(band, mod.range.max);
-  if (frag.includes("\\d+")) return frag.replace("\\d+", n);
-  return `${frag}.*${n}${unit(mod.text)}`;
+    수치는 걸지 않는다. 그 옵션이 붙었는지만 보면 되고, 무엇을 담을지는 표의 기준 필터가
+    이미 정한다. 수치를 걸려면 조각이 옵션 줄에 있어야 하는데, 좋은 조각은 대부분 이름 줄에
+    있어서(known.js) 둘을 `.*` 로 이으면 검색이 줄 단위일 때 성립하지 않는다. */
+export function hitTerm(mod, others) {
+  return compact(mod.text, others);
 }
 
 /** 검색창이 받는 길이. 참고 사이트들이 250으로 세고 있다. */
