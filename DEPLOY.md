@@ -452,8 +452,8 @@ python3 tools/waystone_prices.py --list        # 물어볼 59키 목록
 python3 tools/waystone_prices.py --probe 5     # 다섯 키만 실제로 물어본다 (안 올린다)
 ```
 
-**줄 끝의 정규식 칸**은 그 조건을 게임 창고 검색창에 넣을 문자열로 바꿔 복사한다. 만드는
-방식은 <https://poeregexkr.web.app/poe2/map> 의 것을 옮겼다(`web/src/lib/waystone/regex.js`).
+**줄 끝의 정규식 칸**은 그 조건을 게임 창고 검색창에 넣을 문자열로 바꿔 복사한다
+(`web/src/lib/waystone/regex.js`).
 
 정규식에는 수 비교가 없어 자릿수로 펼친다 — `50 이상` 은 `([5-9].|[1-9]..)%` 다. 앞자리
 (`율:` · `터.*도:` · `템.*도:` · `규모:` · `률:`)는 경로석에 찍힌 줄을 알아보는 최소한의

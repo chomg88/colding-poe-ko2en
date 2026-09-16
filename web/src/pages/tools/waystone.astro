@@ -132,16 +132,6 @@ const jsonld = {
         그대로 창고 검색창에 넣으면 그 조건을 만족하는 경로석만 남습니다.
       </dd>
 
-      <dt>정규식이 왜 저렇게 생겼나요</dt>
-      <dd>
-        정규식에는 '이 수보다 크다' 가 없어서 자릿수로 펼쳐야 합니다. <strong>50 이상</strong>은
-        "십의 자리가 5~9 인 두 자리" 이거나 "세 자리" 라서 <code>([5-9].|[1-9]..)</code> 가 됩니다.
-        앞의 <code>율:</code>, <code>터.*도:</code> 는 경로석에 찍힌 줄(<code>몬스터 효율: +54%</code>)을
-        알아보는 최소한의 글자입니다 — 검색창 한도가 250자라 짧게 끊습니다.
-        만드는 방식은 <a href="https://poeregexkr.web.app/poe2/map" target="_blank" rel="noopener">
-        poeregexkr</a> 의 것을 따랐습니다.
-      </dd>
-
       <dt>그 등급 버튼이 흐리면</dt>
       <dd>
         그 등급에는 두지 않은 조건입니다. 값 칸의 흐린 <span class="ws-off">-</span> 와 같은

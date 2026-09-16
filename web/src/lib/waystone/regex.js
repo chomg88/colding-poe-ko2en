@@ -3,8 +3,8 @@
    표는 '16등급 효율50+ & 몬희30+ 가 37카오스' 까지 알려 주지만, 그런 경로석을 내 창고에서
    찾는 일은 손으로 남는다. 조건을 검색 문자열로 바꿔 복사해 주면 그 간극이 없어진다.
 
-   만드는 방식은 https://poeregexkr.web.app/poe2/map 의 것을 그대로 옮겼다. 그리는 일과
-   나눠 둔 까닭은 DOM 없이 불러 검증할 수 있어야 해서다 — web/scripts/check-regex.mjs. */
+   그리는 일과 나눠 둔 까닭은 DOM 없이 불러 검증할 수 있어야 해서다 —
+   web/scripts/check-regex.mjs. */
 
 /** 임계값 → '이 값 이상' 을 뜻하는 정규식 조각.
 
@@ -85,5 +85,5 @@ export function forQuery(tier, parts = []) {
   return [`"${tier}등급"`, ...parts.map(([a, v]) => term(a, v))].filter(Boolean).join(" ");
 }
 
-/** 검색창이 받는 길이. 참고 사이트가 250으로 세고 있다. */
+/** 검색창이 받는 길이. */
 export const MAX = 250;
