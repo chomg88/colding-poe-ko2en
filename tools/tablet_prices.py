@@ -518,7 +518,7 @@ def main():
         # 오래 안 본 것부터. 아직 한 번도 안 본 키가 먼저다.
         for q in (rep, deep):
             q.sort(key=lambda j: (b.get(j[0]) or [0])[0])
-        # 경로석은 43키뿐이라 서판에 섞어 돈다. 따로 돌리면 두 프로세스가 거래소 IP 한도를
+        # 경로석은 60키뿐이라 서판에 섞어 돈다. 따로 돌리면 두 프로세스가 거래소 IP 한도를
         # 나눠 쓰게 돼 서판 쪽이 그만큼 느려진다(DEPLOY.md 「경로석 시세」).
         wj = sorted(ws.jobs(), key=lambda j: (w.get(j[0]) or [0])[0])
         jobs = weave([("t",) + j for j in weave(rep, deep)], [("w",) + j for j in wj])
@@ -540,9 +540,9 @@ def main():
                     _, key, mod, base, band = job
                     rec, what = look(api, mod, base, band, rates), f"{mod['base']} {mod['text'][:28]}"
                 else:
-                    _, key, tier, axis, band = job
-                    rec = ws.look(api, (key, tier, axis, band), rates, sample)
-                    what = ws.label(tier, axis, band)
+                    _, key, tier, parts = job
+                    rec = ws.look(api, (key, tier, parts), rates, sample)
+                    what = ws.label(tier, parts)
                 store[key], dirty = rec, True
                 save_state(cat["league"], name, b, w)
                 print(f"  [{n}/{len(jobs)}] {key} {what} · 매물 {rec[1]} · 중앙 {rec[4]}")

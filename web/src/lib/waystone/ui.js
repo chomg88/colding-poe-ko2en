@@ -56,14 +56,8 @@ export function mount(el) {
 
   const rec = (tier, axis, band) => P?.b?.[axis ? `${tier}:${axis}:${band}` : `${tier}:base`] || null;
 
-  /** 표의 한 줄 = 축의 한 구간. 등급마다 칸을 따로 둔다 — 같은 구간이라도 15·16등급 값이
-      몇 배씩 차이 난다. 그 등급에서 안 보는 구간은 흐린 '-' 다(기다려도 값이 오지 않는다). */
-  function cell(tier, axis, band, bands) {
-    if (axis && !bands.includes(band)) {
-      return `<td class="num ws-off" title="${tier}등급에는 이 구간이 없습니다 — 그만큼 높게 굴러가지 않습니다">-</td>
-              <td class="num ws-off">-</td>`;
-    }
-    const r = rec(tier, axis, band);
+  /** 값 칸 두 개(값 · 매물 수). 기록이 없으면 '대기' 다. */
+  function cells(r) {
     if (!r) return `<td class="num ws-dim">대기</td><td class="num ws-dim"></td>`;
     if (r[6]) return `<td class="num ws-err" title="${esc(r[6])}">오류</td><td class="num ws-dim"></td>`;
     const val = r[4] != null ? money(r[4]) : "매물 없음";
@@ -73,6 +67,18 @@ export function mount(el) {
       : `<span title="${esc(tip)}">${val}</span>`;
     return `<td class="num ws-val">${inner}</td>
             <td class="num ws-dim" title="즉시구입 매물 수. 10,000 은 거래소가 세다 만 것입니다">${r[1].toLocaleString()}</td>`;
+  }
+
+  /** 그 등급에서는 아예 안 보는 자리. 기다려도 값이 오지 않는다. */
+  const off = (why) => `<td class="num ws-off" title="${esc(why)}">-</td>
+                        <td class="num ws-off">-</td>`;
+
+  /** 표의 한 줄 = 축의 한 구간. 등급마다 칸을 따로 둔다 — 같은 구간이라도 15·16등급 값이
+      몇 배씩 차이 난다. */
+  function cell(tier, axis, band, bands) {
+    if (axis && !bands.includes(band))
+      return off(`${tier}등급에는 이 구간이 없습니다 — 그만큼 높게 굴러가지 않습니다`);
+    return cells(rec(tier, axis, band));
   }
 
   function rows() {
@@ -88,6 +94,33 @@ export function mount(el) {
         ${P.tiers.map((t) => cell(t, a.id, band, a.bands[String(t)] || [])).join("")}</tr>`));
     }
     return out.join("");
+  }
+
+  /** 조합 표. 같은 축·구간 쌍을 한 줄로 묶고 등급마다 칸을 둔다 — 조합 목록이 등급마다
+      달라, 한쪽에만 있는 줄은 반대쪽이 흐린 '-' 가 된다(단독 구간 표와 같은 규칙).
+      비싼 줄부터 세운다 — 조합을 보는 사람은 '뭐가 제일 비싼가' 를 먼저 찾는다. */
+  function comboRows() {
+    const list = P.combos || [];
+    if (!list.length) return "";
+    const sig = (parts) => parts.map(([a, b]) => `${a}${b}`).join("+");
+    const byPair = new Map();
+    for (const c of list) {
+      const k = sig(c.parts);
+      if (!byPair.has(k)) byPair.set(k, { parts: c.parts, keys: {} });
+      byPair.get(k).keys[c.tier] = c.key;
+    }
+    const name = (parts) => parts.map(([a, b]) => {
+      const ax = P.axes.find((x) => x.id === a);
+      return `${ax ? ax.label : a} ${b}${ax ? ax.unit : ""}+`;
+    }).join(" & ");
+    const top = (row) => Math.max(...P.tiers.map((t) => (P.b?.[row.keys[t]] || [])[4] || 0));
+    return [...byPair.values()].sort((x, y) => top(y) - top(x)).map((row, i) =>
+      `<tr${i === 0 ? ' class="ws-first"' : ""}>
+        <td class="ws-axis" colspan="2">${esc(name(row.parts))}</td>
+        ${P.tiers.map((t) => row.keys[t]
+          ? cells(P.b?.[row.keys[t]] || null)
+          : off(`${t}등급에는 이 조합을 두지 않았습니다 — 매물이 거의 없거나, 값이 축 하나짜리와 같습니다`)
+        ).join("")}</tr>`).join("");
   }
 
   function status() {
@@ -128,10 +161,20 @@ export function mount(el) {
 
   function render() {
     if (!P) return;
-    $("[data-head]").innerHTML = `<tr><th>속성</th><th class="num">구간</th>`
+    const head = (first) => `<tr>${first}`
       + P.tiers.map((t) => `<th class="num">${t}등급 <span class="tb-unit">${unitName()}</span></th>`
         + `<th class="num">매물</th>`).join("") + `</tr>`;
+    $("[data-head]").innerHTML = head(`<th>속성</th><th class="num">구간</th>`);
     $("[data-rows]").innerHTML = rows();
+    // 조합은 수집기가 실어 보낼 때만 그린다 — 옛 시세 파일에는 combos 가 없다.
+    const box = $("[data-combo]");
+    if (box) {
+      box.hidden = !(P.combos || []).length;
+      if (!box.hidden) {
+        $("[data-head2]").innerHTML = head(`<th colspan="2">조합</th>`);
+        $("[data-rows2]").innerHTML = comboRows();
+      }
+    }
     for (const b of el.querySelectorAll('[data-seg="cur"] button'))
       b.setAttribute("aria-pressed", String(b.dataset.v === S.cur));
   }

@@ -27,9 +27,26 @@ POE2 경로석 시세 — 구간표와 수집.
 구간을 두면 영영 매물 없는 빈 키가 된다.
 
 축 하나가 끝까지 굴렀느냐로 값이 갈린다. 품질 축 넷(효율·몬스터 희귀도·아이템 희귀도·
-무리 규모)은 **높은 값에서 서로 안 붙는다** — 15등급 효율70+ & 몬희70+ 가 0건이다(낮은
-구간에서는 붙는다. 효율30+ & 몬희30+ 는 3144건). 그래서 조합 키는 두지 않는다. 서판에서
-쓴 '가장 비싼 축 하나가 값을 정한다' 가 여기서는 더 잘 맞는다.
+무리 규모)은 **높은 값에서 서로 안 붙는다** — 16등급 효율50+ & 몬희50+ 가 0건이다.
+
+낮은 구간끼리는 붙는다 (2026-09-16 확인)
+────────────────────────────────────────
+붙는 자리를 전부 세어 보니 품질 축 쌍은 **각 축의 맨 아래 한두 구간에서만** 살아 있었다.
+한 칸만 올려도 0으로 떨어진다 — 16등급 효율30+ & 무리25+ 는 112건인데 무리를 35로
+올리면 0건이다.
+
+그 살아 있는 자리의 값을 재 보니 둘로 갈렸다.
+
+  효율이 낀 조합은 값이 뛴다     16등급 효율30+ & 몬희50+ 24.5카오스 (효율30 단독 6.4)
+                                15등급 효율50+ & 몬희50+ 60카오스   (효율50 단독 9)
+  효율이 없는 조합은 제자리다    16등급 몬희30+ & 아희40+ 3카오스   (아희40 단독 3)
+
+그래서 조합 키는 **조합값이 두 축 각각의 단독값보다 뚜렷이 높은 것만** 둔다(아래 COMBOS).
+제자리인 조합에 키를 두면 이미 있는 값을 한 번 더 적는 것뿐이고 한 바퀴 슬롯만 먹는다.
+
+출현 확률은 조합에 넣지 않는다. 다른 축과 제일 잘 붙지만(16등급 무리25+ & 출현100+ 가
+4303건) 그건 출현 확률이 품질 굴림과 따로 놀기 때문이고, 실제로 쓰이는 것은 130+ 짜리
+단독이다.
 
 금·경험치 축은 필터가 있는데도 매물이 0이다 — 이 리그 경로석에는 안 붙는다. 아이템 수량도
 없다(그 자리를 아이템 희귀도가 대신한다).
@@ -58,33 +75,75 @@ AXES = {
     "revive": ("map_revives",        "부활 횟수",        "회", {16: (1,),            15: (1,)}),
 }
 
+# 조합 키 — ((축, 구간), (축, 구간)). 위 「낮은 구간끼리는 붙는다」에서 고른 것들이다.
+# 기준 둘: 중앙값 4카오스 이상, 그리고 두 축 각각의 단독값보다 1.5배 이상.
+# 매물이 마흔 건도 안 되는 자리는 두지 않는다 — 한두 건 팔리면 값이 통째로 흔들린다.
+COMBOS = {
+    16: (
+        (("eff", 50), ("rare", 30)),     # 37.0카오스 · 1.6배 · 87건
+        (("eff", 30), ("rare", 50)),     # 24.5      · 3.8배 · 191건
+        (("rare", 50), ("iir", 40)),     # 11.0      · 2.6배 · 56건
+        (("eff", 30), ("iir", 40)),      # 10.0      · 1.6배 · 162건
+    ),
+    15: (
+        (("eff", 50), ("rare", 50)),     # 60.0카오스 · 6.7배 · 99건
+        (("eff", 30), ("iir", 60)),      # 30.0      · 15.0배 · 68건
+        (("eff", 50), ("iir", 40)),      # 30.0      · 3.3배 · 93건
+        (("eff", 50), ("pack", 25)),     # 21.0      · 2.3배 · 86건
+        (("eff", 30), ("rare", 50)),     # 12.0      · 6.0배 · 1158건
+        (("rare", 50), ("pack", 35)),    # 11.2      · 3.0배 · 46건
+        (("eff", 30), ("pack", 35)),     # 11.0      · 2.9배 · 157건
+        (("rare", 30), ("iir", 60)),     # 10.0      · 5.0배 · 265건
+        (("iir", 60), ("pack", 25)),     #  9.0      · 4.5배 · 72건
+        (("rare", 50), ("iir", 40)),     #  6.4      · 3.2배 · 918건
+        (("eff", 30), ("rare", 30)),     #  4.5      · 12.6배 · 4128건
+        (("eff", 30), ("iir", 40)),      #  4.0      · 11.2배 · 1951건
+    ),
+}
 
-def query(tier, axis=None, band=None):
-    """거래소 검색 본문. 등급은 종류(base)로 못 박고 축 하나를 얹는다."""
+
+def query(tier, parts=()):
+    """거래소 검색 본문. 등급은 종류(base)로 못 박고 축을 얹는다.
+
+    parts 는 ((축, 구간), ...) 다. 비면 그 등급의 바닥값이고, 하나면 단독 구간,
+    둘이면 조합이다 — map_filters 는 여러 축을 한 묶음에 받아 전부 만족하는 매물만 준다."""
     q = {"status": {"option": "securable"}, "type": f"경로석 ({tier}등급)"}
-    if axis:
-        q["filters"] = {"map_filters": {"filters": {AXES[axis][0]: {"min": band}}}}
+    if parts:
+        q["filters"] = {"map_filters": {
+            "filters": {AXES[a][0]: {"min": b} for a, b in parts}}}
     return {"query": q, "sort": {"price": "asc"}}
 
 
+def key_of(tier, parts):
+    """키 이름. 바닥 '16:base' · 단독 '16:eff:50' · 조합 '16:eff50+rare30'."""
+    if not parts:
+        return f"{tier}:base"
+    if len(parts) == 1:
+        return f"{tier}:{parts[0][0]}:{parts[0][1]:g}"
+    return f"{tier}:" + "+".join(f"{a}{b:g}" for a, b in parts)
+
+
 def jobs():
-    """물어볼 키 목록. [(키, 등급, 축, 구간)] — 축이 None 이면 그 등급의 바닥값이다."""
-    out = [(f"{t}:base", t, None, None) for t in TIERS]
+    """물어볼 키 목록. [(키, 등급, parts)] — parts 가 비면 그 등급의 바닥값이다."""
+    out = [(f"{t}:base", t, ()) for t in TIERS]
     for t in TIERS:
         for a, (_f, _label, _unit, bands) in AXES.items():
-            out += [(f"{t}:{a}:{b:g}", t, a, b) for b in bands[t]]
+            out += [(key_of(t, ((a, b),)), t, ((a, b),)) for b in bands[t]]
+        out += [(key_of(t, ps), t, ps) for ps in COMBOS[t]]
     return out
 
 
-def label(tier, axis, band):
-    return f"{tier}등급 " + ("등급 바닥" if not axis else
-                            f"{AXES[axis][1]} {band:g}{AXES[axis][2]}+")
+def label(tier, parts):
+    if not parts:
+        return f"{tier}등급 등급 바닥"
+    return f"{tier}등급 " + " & ".join(
+        f"{AXES[a][1]} {b:g}{AXES[a][2]}+" for a, b in parts)
 
 
 def look(api, job, rates, sample):
     """키 하나. 값 내는 방식은 서판과 같다 — 싼 매물 열 건의 최저·중앙값."""
-    _key, tier, axis, band = job
-    return sample(api, query(tier, axis, band), rates)
+    _key, tier, parts = job
+    return sample(api, query(tier, parts), rates)
 
 
 def compose(league, b, rates, seen):
@@ -99,6 +158,11 @@ def compose(league, b, rates, seen):
         "axes": [{"id": a, "label": label, "unit": unit,
                   "bands": {str(t): [float(x) for x in bands[t]] for t in TIERS}}
                  for a, (_f, label, unit, bands) in AXES.items()],
+        # 조합은 등급마다 목록이 다르다. 화면은 둘을 합쳐 줄을 만들고, 그 등급에 없는
+        # 조합 칸은 흐린 '-' 로 둔다(단독 구간에서 하던 것과 같다).
+        "combos": [{"tier": t, "key": key_of(t, ps),
+                    "parts": [[a, float(b)] for a, b in ps]}
+                   for t in TIERS for ps in COMBOS[t]],
         "b": b,
     }
 
@@ -113,8 +177,8 @@ def main():
 
     js = jobs()
     if args.list or not args.probe:
-        for key, tier, axis, band in js:
-            print(f"  {key:<16} {label(tier, axis, band)}")
+        for key, tier, parts in js:
+            print(f"  {key:<20} {label(tier, parts)}")
         print(f"  키 {len(js)}개 · 45초 간격이면 한 바퀴 {len(js) * 45 / 60:.0f}분")
         return
 
@@ -124,10 +188,10 @@ def main():
     print("  환산: " + " · ".join(f"1 {k} = {v} 엑잘" for k, v in rates.items() if k != "exalted"))
     ch = rates.get("chaos") or 1
     for n, job in enumerate(js[:args.probe], 1):
-        _key, tier, axis, band = job
+        _key, tier, parts = job
         rec = look(api, job, rates, tp.sample)
         med = f"{rec[4] / ch:.1f}카오스" if rec[4] is not None else "매물 없음"
-        print(f"  [{n}/{args.probe}] {label(tier, axis, band):<28} 매물 {rec[1]:>6} · 중앙 {med}")
+        print(f"  [{n}/{args.probe}] {label(tier, parts):<40} 매물 {rec[1]:>6} · 중앙 {med}")
         if n < args.probe:
             time.sleep(args.gap)
 

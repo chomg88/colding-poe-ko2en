@@ -9,3 +9,7 @@
 /* 축이 바뀌는 줄에만 선을 굵게 — 구간이 촘촘해 어디서 축이 갈리는지 안 보인다 */
 .tb-table tr.ws-first td{border-top:1px solid var(--line-2)}
 .tb-table tr.ws-floor td{background:var(--panel-2)}
+
+/* 조합 표 — 속성 표와 같은 뼈대에 머리말만 얹는다 */
+.ws-sub{margin:28px 0 6px; font-size:1.05rem; color:var(--ink)}
+.ws-note{margin:0 0 10px; color:var(--faint); font-size:.9rem; line-height:1.5}

@@ -76,7 +76,8 @@ export const TABLET = {
 };
 
 // 경로석 시세. 서판과 같은 수집기가 같은 data 브랜치에 같이 올린다 — 파일만 다르다.
-// 43구간을 32분에 한 바퀴 도는데 서판과 번갈아 돌아, 한 구간이 다시 오기까지 몇 시간 걸린다.
+// 59구간(단독 43 + 조합 16)을 44분에 한 바퀴 도는데 서판과 번갈아 돌아, 한 구간이 다시
+// 오기까지 몇 시간 걸린다.
 export const WAYSTONE = {
   prices: "https://raw.githubusercontent.com/chomg88/colding-poe-ko2en/data/waystone-prices.json",
   warnHours: 6,
