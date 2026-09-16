@@ -98,3 +98,20 @@ a.tb-chip:hover{border-color:var(--accent); text-decoration:none}
 @media (max-width:720px){
   .tb-count{margin-left:0; width:100%}
 }
+
+/* 정규식 복사 — 행 끝 버튼과 표 위 통합 줄. 경로석의 .ws-rx 와 같은 결. */
+.tb-acts{white-space:nowrap}
+.tb-rx{margin-left:6px; padding:2px 7px; font:inherit; font-size:.82em;
+       color:var(--faint); background:transparent;
+       border:1px solid var(--line-2); border-radius:4px; cursor:pointer}
+.tb-rx:hover,.tb-rx:focus-visible{color:var(--ink); border-color:var(--accent-hi)}
+.tb-rx.hit{color:var(--accent-hi); border-color:var(--accent-hi)}
+.tb-rx b{font-weight:600; color:var(--faint)}
+.tb-rx:hover b{color:var(--ink-2)}
+
+.tb-combo{display:flex; flex-wrap:wrap; align-items:center; gap:6px;
+          margin:0 0 10px; padding:8px 10px;
+          background:var(--panel-2); border:1px solid var(--line); border-radius:var(--r-sm)}
+.tb-combo .tb-rx{margin-left:0}
+.tb-combo-lab{font-weight:650; color:var(--ink); font-size:.9em}
+.faq code{overflow-wrap:anywhere}

@@ -6,6 +6,8 @@
    값은 사이트 배포와 따로 움직이고, 운영자 PC 가 꺼지면 멈춘다. 그래서 마지막 갱신
    시각을 늘 보여 주고, 오래되면 표 위에 경고를 띄운다(data-warn / data-bad 시간). */
 
+import { rowTerm, hitTerm, chunk, unit as unitOf } from "./regex.js";
+
 const TRADE = "https://poe.kakaogames.com/trade2/search/poe2";
 const REFRESH_MS = 5 * 60 * 1000;
 const STORE = "colding-tablet";
@@ -43,12 +45,6 @@ function ago(sec) {
   return `${Math.round(sec / 86400)}일`;
 }
 
-/** 수치 칩 라벨의 단위 — 옵션 문구에서 # 바로 뒤. "#% 증가" → "%", "#초" → "초" */
-function unitOf(text) {
-  const m = /#\s*(%|초|개|회|마리|명)/.exec(text);
-  return m ? m[1] : "";
-}
-
 export function mount(el) {
   const $ = (s) => el.querySelector(s);
   const warnH = Number(el.dataset.warn) || 3;
@@ -71,6 +67,34 @@ export function mount(el) {
     return ex >= 100 ? Math.round(ex).toLocaleString() : ex >= 10 ? ex.toFixed(0) : ex.toFixed(1);
   }
   const unitName = () => (inDiv() ? "디바인" : "엑잘");
+
+  /* 옵션을 갈라 주는 짧은 조각은 카탈로그가 정해지면 바뀌지 않는다. 문구 86개에 68ms 라
+     한 번 계산해 두고 쓴다 — 표를 다시 그릴 때마다 하면 필터를 만질 때마다 멈칫한다.
+
+     두 벌인 까닭: 행 버튼은 서판 종류를 같이 박으므로 같은 종류의 옵션끼리만 갈리면 되고
+     (그래서 더 짧다), 통합 정규식은 창고를 통째로 훑느라 종류를 안 가려 전체에서 갈려야 한다. */
+  let RX = null;
+  function fragments() {
+    if (RX) return RX;
+    const all = [...new Set(C.mods.map((m) => m.text))];
+    const byBase = new Map();
+    for (const m of C.mods) byBase.set(m.base, [...(byBase.get(m.base) ?? []), m.text]);
+    RX = { row: new Map(), all };
+    for (const m of C.mods) {
+      const k = `${m.base}\u0000${m.text}`;
+      if (!RX.row.has(k)) RX.row.set(k, rowTerm(m, byBase.get(m.base)));
+    }
+    return RX;
+  }
+  const rowRx = (m) => fragments().row.get(`${m.base}\u0000${m.text}`) || "";
+
+  /** 통합 정규식에 넣을 항. 옵션마다 '기준을 넘는 가장 싼 구간' 을 고른다 — 그 아래는
+      기준에 못 미치고, 그 위는 굳이 좁힐 것 없이 매물을 놓친다. */
+  function hitRx(r) {
+    const ok = r.bands.filter((b) => b.t != null && b.med != null && b.med >= S.th);
+    const band = ok.length ? Math.min(...ok.map((b) => b.t)) : null;
+    return hitTerm(r.m, band, fragments().all);
+  }
 
   function join() {
     const b = P?.b || {};
@@ -180,6 +204,12 @@ export function mount(el) {
       : `<span class="tb-dim">대기</span>`;
     const link = b0.qid && P
       ? `<a class="tb-go" href="${TRADE}/${encodeURIComponent(P.league)}/${esc(b0.qid)}" target="_blank" rel="noopener">거래소</a>` : "";
+    // 행 버튼은 수치를 넣지 않는다 — '이 옵션이 붙은 게 있나' 를 본다. 수치까지 걸고 싶으면
+    // 표 위의 통합 정규식이 기준을 넘는 구간으로 만들어 준다.
+    const rx = rowRx(m);
+    const rxBtn = rx
+      ? `<button type="button" class="tb-rx" data-rx="${esc(rx)}"
+           title="${esc(`창고 검색식을 복사합니다 — ${rx}`)}">정규식</button>` : "";
     return `<tr class="${hot ? "hot" : ""}${stale ? " stale" : ""}">
       <td class="num tb-dim">${i + 1}</td>
       ${S.base ? "" : `<td class="tb-base">${esc(m.base.replace(" 서판", ""))}</td>`}
@@ -190,7 +220,7 @@ export function mount(el) {
       <td class="num">${med}</td>
       <td><div class="tb-chips">${chips}</div></td>
       <td class="num tb-dim">${b0.at ? ago(now() - b0.at) + " 전" : ""}</td>
-      <td>${link}</td>
+      <td class="tb-acts">${link}${rxBtn}</td>
     </tr>`;
   }
 
@@ -205,11 +235,78 @@ export function mount(el) {
     $("[data-count]").textContent = `${list.length}개 옵션`;
     $("[data-rows]").innerHTML = list.map(row).join("")
       || `<tr><td colspan="10" class="tb-empty">조건에 맞는 옵션이 없습니다.</td></tr>`;
+    combos(list);
+  }
+
+  /** 통합 정규식 — 지금 보이는 옵션 전부를 하나로 묶는다.
+
+      표에 걸린 필터(서판 종류·기준·접두/접미·검색어)를 그대로 따른다. 창고를 한 번에
+      훑는 쪽이라 서판 종류는 박지 않는다 — 한 창고에 여러 종류가 섞여 있다.
+
+      검색창이 250자까지라 넘치면 조각으로 자른다. 나눠 붙여 넣으면 된다. */
+  function combos(list) {
+    const box = $("[data-combo]");
+    if (!box) return;
+    // 같은 문구가 여러 서판에 걸쳐 있다. 종류를 안 박으므로 한 번만 넣는다.
+    const seen = new Set();
+    const terms = [];
+    for (const r of list) {
+      const t = hitRx(r);
+      if (!t || seen.has(t)) continue;
+      seen.add(t);
+      terms.push(t);
+    }
+    const parts = chunk(terms);
+    box.hidden = !parts.length;
+    if (!parts.length) return;
+    const one = parts.length === 1;
+    box.innerHTML = `<span class="tb-combo-lab" title="지금 표에 보이는 옵션 ${terms.length}개를 하나로 묶습니다. `
+      + `옵션마다 기준 ${S.th}엑잘을 넘는 가장 싼 수치로 겁니다">통합 정규식</span>`
+      + parts.map((p, i) => `<button type="button" class="tb-rx" data-rx="${esc(p)}"
+          title="${esc(`${p.length}자 — ${p}`)}">${one ? "복사" : i + 1} <b>${p.length}자</b></button>`).join("")
+      + (one ? "" : `<span class="tb-dim">${parts.length}조각으로 나눠 붙여 넣으세요</span>`);
   }
 
   function set(key, v) { S[key] = v; savePrefs(S); controls(); render(); }
 
+  /** 클립보드. https 가 아니거나 권한이 막히면 writeText 가 없거나 던진다 — 그때는 숨은
+      textarea 로 물러선다(경로석 화면과 같다). */
+  async function copy(text) {
+    try { await navigator.clipboard.writeText(text); return true; } catch { /* 아래로 */ }
+    try {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.setAttribute("readonly", "");
+      ta.style.cssText = "position:fixed;top:-1000px;opacity:0";
+      document.body.appendChild(ta);
+      ta.select();
+      const ok = document.execCommand("copy");
+      ta.remove();
+      return ok;
+    } catch { return false; }
+  }
+
+  // 앞서 누른 버튼이 아직 '복사됨' 이면 그것부터 되돌린다 — 안 그러면 잇달아 누를 때
+  // 앞 버튼이 그대로 남고, 같은 버튼을 두 번 누르면 원래 글자를 잃는다.
+  let pending = null, undo = 0;
+  function restore() {
+    clearTimeout(undo);
+    if (!pending) return;
+    pending.el.innerHTML = pending.was;
+    pending.el.classList.remove("hit");
+    pending = null;
+  }
+  async function copied(b) {
+    restore();
+    pending = { el: b, was: b.innerHTML };
+    b.textContent = (await copy(b.dataset.rx)) ? "복사됨" : "실패";
+    b.classList.add("hit");
+    undo = setTimeout(restore, 1200);
+  }
+
   el.addEventListener("click", (e) => {
+    const rx = e.target.closest("button.tb-rx");
+    if (rx) return void copied(rx);
     const b = e.target.closest("[data-seg] button");
     if (b) set(b.parentElement.dataset.seg, b.dataset.v);
   });
