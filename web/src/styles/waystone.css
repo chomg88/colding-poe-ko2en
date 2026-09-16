@@ -13,3 +13,17 @@
 /* 조합 표 — 속성 표와 같은 뼈대에 머리말만 얹는다 */
 .ws-sub{margin:28px 0 6px; font-size:1.05rem; color:var(--ink)}
 .ws-note{margin:0 0 10px; color:var(--faint); font-size:.9rem; line-height:1.5}
+
+/* 줄 끝의 정규식 버튼. 표 줄 높이를 늘리지 않게 납작하게 두고, 글자는 등급 두 자리만 */
+.ws-rxs{white-space:nowrap; text-align:right}
+.ws-rx{display:inline-block; min-width:2.4em; margin-left:4px; padding:1px 5px;
+       font:inherit; font-size:.82em; font-variant-numeric:tabular-nums;
+       color:var(--faint); background:transparent;
+       border:1px solid var(--line-2); border-radius:4px; cursor:pointer}
+.ws-rx:hover,.ws-rx:focus-visible{color:var(--ink); border-color:var(--accent-hi)}
+.ws-rx.hit{min-width:0; color:var(--accent-hi); border-color:var(--accent-hi)}
+/* 그 등급에 없는 조건 — 값 칸의 흐린 '-' 와 같은 결로 죽인다 */
+.ws-rx.off{color:var(--faint); opacity:.45; border-style:dashed; cursor:default}
+
+/* FAQ 안의 예시 정규식은 길어서 좁은 화면에서 넘친다 — 줄바꿈을 허용한다 */
+.faq code{overflow-wrap:anywhere}

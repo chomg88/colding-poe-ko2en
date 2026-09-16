@@ -6,6 +6,8 @@
    값은 사이트 배포와 따로 움직이고 운영자 PC 가 꺼지면 멈춘다 — 마지막 갱신 시각을 늘
    보여 주고, 오래되면 표 위에 경고를 띄운다(서판 화면과 같다). */
 
+import { forQuery } from "./regex.js";
+
 const TRADE = "https://poe.kakaogames.com/trade2/search/poe2";
 const REFRESH_MS = 5 * 60 * 1000;
 const STORE = "colding-waystone";
@@ -73,6 +75,21 @@ export function mount(el) {
   const off = (why) => `<td class="num ws-off" title="${esc(why)}">-</td>
                         <td class="num ws-off">-</td>`;
 
+  /** 줄 끝의 정규식 칸. 등급마다 버튼 하나씩 두고, 그 등급에 없는 자리는 죽인다.
+
+      복사할 문자열은 data-rx 에 싣는다 — 이 파일은 표를 통째로 문자열로 만들어 넣으므로
+      누를 때 다시 계산하지 않는다. 버튼 글자는 '16'·'15' 두 글자다. 좁은 화면에서 이 칸이
+      가로 스크롤을 늘리기 때문이다. */
+  function rxCell(has) {
+    const btn = (t) => {
+      if (!has(t)) return `<span class="ws-rx off" title="${t}등급에는 이 조건이 없습니다">${t}</span>`;
+      const rx = forQuery(t, has(t));
+      return `<button type="button" class="ws-rx" data-rx="${esc(rx)}"
+                title="${esc(`${t}등급 검색식을 복사합니다 — ${rx}`)}">${t}</button>`;
+    };
+    return `<td class="ws-rxs">${P.tiers.map(btn).join("")}</td>`;
+  }
+
   /** 표의 한 줄 = 축의 한 구간. 등급마다 칸을 따로 둔다 — 같은 구간이라도 15·16등급 값이
       몇 배씩 차이 난다. */
   function cell(tier, axis, band, bands) {
@@ -84,14 +101,16 @@ export function mount(el) {
   function rows() {
     const out = [`<tr class="ws-floor">
       <td class="ws-axis">등급 바닥</td><td class="num ws-dim">조건 없음</td>
-      ${P.tiers.map((t) => cell(t, null, null, [])).join("")}</tr>`];
+      ${P.tiers.map((t) => cell(t, null, null, [])).join("")}
+      ${rxCell(() => [])}</tr>`];
     for (const a of P.axes) {
       // 등급마다 상한이 달라 구간이 다르다 — 둘을 합쳐 한 줄씩 그린다
       const all = [...new Set(P.tiers.flatMap((t) => a.bands[String(t)] || []))].sort((x, y) => x - y);
       out.push(...all.map((band, i) => `<tr${i === 0 ? ' class="ws-first"' : ""}>
         <td class="ws-axis">${i === 0 ? esc(a.label) : ""}</td>
         <td class="num">${band}${esc(a.unit)}+</td>
-        ${P.tiers.map((t) => cell(t, a.id, band, a.bands[String(t)] || [])).join("")}</tr>`));
+        ${P.tiers.map((t) => cell(t, a.id, band, a.bands[String(t)] || [])).join("")}
+        ${rxCell((t) => (a.bands[String(t)] || []).includes(band) && [[a.id, band]])}</tr>`));
     }
     return out.join("");
   }
@@ -120,7 +139,8 @@ export function mount(el) {
         ${P.tiers.map((t) => row.keys[t]
           ? cells(P.b?.[row.keys[t]] || null)
           : off(`${t}등급에는 이 조합을 두지 않았습니다 — 매물이 거의 없거나, 값이 축 하나짜리와 같습니다`)
-        ).join("")}</tr>`).join("");
+        ).join("")}
+        ${rxCell((t) => row.keys[t] && row.parts)}</tr>`).join("");
   }
 
   function status() {
@@ -163,7 +183,8 @@ export function mount(el) {
     if (!P) return;
     const head = (first) => `<tr>${first}`
       + P.tiers.map((t) => `<th class="num">${t}등급 <span class="tb-unit">${unitName()}</span></th>`
-        + `<th class="num">매물</th>`).join("") + `</tr>`;
+        + `<th class="num">매물</th>`).join("")
+      + `<th title="게임 창고 검색창에 붙여 넣을 검색식을 복사합니다">정규식</th></tr>`;
     $("[data-head]").innerHTML = head(`<th>속성</th><th class="num">구간</th>`);
     $("[data-rows]").innerHTML = rows();
     // 조합은 수집기가 실어 보낼 때만 그린다 — 옛 시세 파일에는 combos 가 없다.
@@ -189,7 +210,51 @@ export function mount(el) {
     }
   }
 
+  /** 클립보드. https 가 아니거나 권한이 막히면 writeText 가 없거나 던진다 — 그때는 숨은
+      textarea 를 만들어 execCommand 로 물러선다(옛 방식이라 어디서나 된다). */
+  async function copy(text) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch { /* 아래로 */ }
+    try {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.setAttribute("readonly", "");
+      ta.style.cssText = "position:fixed;top:-1000px;opacity:0";
+      document.body.appendChild(ta);
+      ta.select();
+      const ok = document.execCommand("copy");
+      ta.remove();
+      return ok;
+    } catch {
+      return false;
+    }
+  }
+
+  // 누른 버튼 글자를 잠깐 바꿔 알린다 — 이 화면에는 토스트가 없다.
+  //
+  // 앞서 누른 버튼이 아직 '복사됨' 이면 그것부터 되돌린다. 안 그러면 잇달아 누를 때 앞
+  // 버튼이 '복사됨' 인 채로 남고, 같은 버튼을 두 번 누르면 원래 글자('16')를 아예 잃는다.
+  let pending = null, undo = 0;
+  function restore() {
+    clearTimeout(undo);
+    if (!pending) return;
+    pending.el.textContent = pending.was;
+    pending.el.classList.remove("hit");
+    pending = null;
+  }
+  async function copied(b) {
+    restore();
+    pending = { el: b, was: b.textContent };
+    b.textContent = (await copy(b.dataset.rx)) ? "복사됨" : "실패";
+    b.classList.add("hit");
+    undo = setTimeout(restore, 1200);
+  }
+
   el.addEventListener("click", (e) => {
+    const rx = e.target.closest("button.ws-rx");
+    if (rx) return void copied(rx);
     const b = e.target.closest('[data-seg="cur"] button');
     if (!b) return;
     S.cur = b.dataset.v;

@@ -8,7 +8,8 @@
     "preview": "astro preview",
     "deploy": "astro build && wrangler pages deploy",
     "deploy:pre": "astro build && wrangler pages deploy --branch preview",
-    "cf:whoami": "wrangler whoami"
+    "cf:whoami": "wrangler whoami",
+    "check:regex": "node scripts/check-regex.mjs"
   },
   "dependencies": {
     "@astrojs/sitemap": "^3.7.3",
