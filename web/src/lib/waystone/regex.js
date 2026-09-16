@@ -15,8 +15,8 @@
         band(75)  →  (7[5-9]|[8-9].|[1-9]..)%
         band(120) →  (1[2-9].|[2-9]..)%
 
-    10 미만은 빈 문자열이다 — 한 자리는 이 방식으로 안 갈린다. 경로석 속성은 전부 두 자리
-    이상이라 걸릴 일이 없고, 걸리는 것은 %가 아닌 부활 횟수뿐이라 term() 에서 따로 잡는다. */
+    10 미만은 빈 문자열이다 — 한 자리는 이 방식으로 안 갈린다. 수집기가 물어보는 경로석
+    속성은 전부 두 자리 이상이라 걸릴 일이 없다. */
 export function band(v) {
   const t = Number(v);
   if (isNaN(t) || t < 10) return "";
@@ -66,8 +66,6 @@ const PREFIX = {
 
 /** 축 하나짜리 항. 못 만들면 빈 문자열이다. */
 export function term(axis, v) {
-  // 부활 횟수는 %가 아니라 횟수라 band() 가 못 만든다. 구간이 '1회 이상' 하나뿐이다.
-  if (axis === "revive") return Number(v) >= 1 ? `"횟수: [1-9]"` : "";
   const pre = PREFIX[axis], b = band(v);
   return pre && b ? `"${pre}${b}"` : "";
 }
